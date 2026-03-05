@@ -40,14 +40,14 @@ export default function FloatingCTA() {
 
   return (
     <a
-      href="mailto:hello@hersheyg.com"
+      href="#contact"
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden font-mono text-sm text-white bg-accent border border-accent-lit/30 rounded-full px-6 py-3 shadow-lg transition-all duration-300 ${
         visible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >
-      hello@hersheyg.com
+      Say hello
     </a>
   );
 }

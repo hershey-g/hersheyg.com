@@ -6,7 +6,7 @@
   --color-bg-2: #0f2035;
   --color-accent: #1E3A5F;
   --color-accent-lit: #3b7cc0;
-  --color-body: #94a3b8;
+  --color-body: #a8b8cc;
   --color-text: #CBD5E1;
   --color-white: #FFFFFF;
   --color-dim: #64748b;
@@ -143,3 +143,24 @@ body::after {
     scroll-behavior: auto !important;
   }
 }
+
+/* Intake agent animations */
+@keyframes intake-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.intake-animate-in {
+  animation: intake-fade-up 0.3s ease both;
+}
+
+/* Intake agent typing dots */
+@keyframes intake-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Intake agent scrollbar */
+.intake-scroll::-webkit-scrollbar { width: 4px; }
+.intake-scroll::-webkit-scrollbar-track { background: transparent; }
+.intake-scroll::-webkit-scrollbar-thumb { background: #1e3348; border-radius: 2px; }

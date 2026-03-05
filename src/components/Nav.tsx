@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const NAV_LINKS = [
-  { label: "services", href: "#services" },
+  { label: "build", href: "#services" },
   { label: "proof", href: "#proof" },
   { label: "contact", href: "#contact" },
 ] as const;
@@ -93,10 +93,11 @@ export default function Nav() {
           ))}
           <li>
             <a
-              href="mailto:hello@hersheyg.com"
+              href="#contact"
+              onClick={closeMenu}
               className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
             >
-              hello@hersheyg.com
+              Say hello
             </a>
           </li>
         </ul>
@@ -149,11 +150,11 @@ export default function Nav() {
               ))}
             </ul>
             <a
-              href="mailto:hello@hersheyg.com"
+              href="#contact"
               onClick={closeMenu}
               className="mt-12 border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
             >
-              hello@hersheyg.com
+              Say hello
             </a>
           </motion.div>
         )}

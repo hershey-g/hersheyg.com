@@ -3,7 +3,7 @@ import Hero from "@/components/Hero";
 import AnimatedHR from "@/components/AnimatedHR";
 import Services from "@/components/Services";
 import Proof from "@/components/Proof";
-import Contact from "@/components/Contact";
+import IntakeAgent from "@/components/IntakeAgent";
 import Footer from "@/components/Footer";
 import DotGrid from "@/components/DotGrid";
 import CursorGlow from "@/components/CursorGlow";
@@ -25,7 +25,7 @@ export default function Home() {
         <AnimatedHR />
         <Proof />
         <AnimatedHR />
-        <Contact />
+        <IntakeAgent />
       </main>
 
       <Footer />

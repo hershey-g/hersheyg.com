@@ -73,7 +73,7 @@ export default function Hero() {
           >
             <MagneticButton>
               <a
-                href={`mailto:${COPY.contact.email}`}
+                href="#contact"
                 className="group inline-flex items-center gap-2 font-mono text-base tracking-wide text-white bg-accent rounded-sm px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:w-full max-lg:justify-center max-lg:py-4"
               >
                 {COPY.hero.cta}

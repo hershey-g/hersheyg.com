@@ -38,6 +38,22 @@ export default function Nav() {
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      const href = e.currentTarget.getAttribute("href");
+      setMenuOpen(false);
+      // Wait for body scroll lock to release before scrolling
+      requestAnimationFrame(() => {
+        if (href) {
+          const target = document.querySelector(href);
+          target?.scrollIntoView({ behavior: "smooth" });
+        }
+      });
+    },
+    [],
+  );
+
   return (
     <motion.nav
       initial={{ opacity: 0 }}
@@ -51,13 +67,12 @@ export default function Nav() {
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Wordmark */}
-        <a href="#" className="flex items-center text-sm">
-          <span className="lg:hidden font-bold uppercase tracking-[0.14em] text-white">HG</span>
-          <span className="hidden lg:flex items-center">
+        <a href="#" className="flex items-center text-xs sm:text-sm">
+          <span className="flex items-center">
             <span className="font-bold uppercase tracking-[0.14em] text-white">
               HERSHEY
             </span>
-            <span className="font-light text-dim mx-1.5">/</span>
+            <span className="font-light text-dim mx-1 sm:mx-1.5">/</span>
             <span className="font-light uppercase tracking-[0.1em] text-text">
               GOLDBERGER
             </span>
@@ -118,14 +133,14 @@ export default function Nav() {
                 : { opacity: 0, y: -20 }
             }
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 top-0 z-[-1] flex flex-col items-center justify-center bg-bg md:hidden"
+            className="fixed inset-0 top-0 z-30 flex flex-col items-center justify-center bg-bg md:hidden"
           >
             <ul className="flex flex-col items-center gap-10">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
                   <a
                     href={link.href}
-                    onClick={closeMenu}
+                    onClick={handleNavClick}
                     className="text-text text-3xl font-medium transition-colors hover:text-accent-lit"
                   >
                     {link.label}

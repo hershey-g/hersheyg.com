@@ -45,14 +45,18 @@ export const COPY = {
     cards: [
       {
         metric: '180,000+',
-        countTarget: 180000,
-        countSuffix: '+',
+        headerLabel: 'Ticketing Platform',
+        statusDot: 'pulse',
+        scrambleDelay: 0,
         label: 'Attendees Processed',
         body: 'Built a custom ticketing platform from scratch. ~$9M in transaction volume. Multi-venue deployments across major arenas. Architected for failure modes, not just the happy path.',
         badge: 'Production \u00b7 Zero Downtime',
       },
       {
         metric: 'OpenClaw',
+        headerLabel: 'Open Source',
+        statusDot: 'static',
+        scrambleDelay: 200,
         label: 'Open Source Contributor',
         body: 'When a client hits a wall, I read the source, write the fix, and push it upstream. Merged PRs in voice/telephony infrastructure and core platform.',
         badge: 'Merged PRs \u00b7 Core Infra',

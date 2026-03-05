@@ -52,12 +52,15 @@ export default function Nav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Wordmark */}
         <a href="#" className="flex items-center text-sm">
-          <span className="font-bold uppercase tracking-[0.14em] text-white">
-            HERSHEY
-          </span>
-          <span className="font-light text-dim mx-1.5">/</span>
-          <span className="font-light uppercase tracking-[0.1em] text-text">
-            GOLDBERGER
+          <span className="lg:hidden font-bold uppercase tracking-[0.14em] text-white">HG</span>
+          <span className="hidden lg:flex items-center">
+            <span className="font-bold uppercase tracking-[0.14em] text-white">
+              HERSHEY
+            </span>
+            <span className="font-light text-dim mx-1.5">/</span>
+            <span className="font-light uppercase tracking-[0.1em] text-text">
+              GOLDBERGER
+            </span>
           </span>
         </a>
 

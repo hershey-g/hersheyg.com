@@ -7,26 +7,37 @@ interface RevealOnScrollProps {
   children: React.ReactNode;
   delay?: number;
   className?: string;
+  variant?: "default" | "heading";
 }
 
 export default function RevealOnScroll({
   children,
   delay = 0,
   className,
+  variant = "default",
 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-64px" });
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
   const prefersReducedMotion = useReducedMotion();
+
+  const initial =
+    variant === "heading"
+      ? { opacity: 0, x: -24 }
+      : { opacity: 0, y: 32 };
+
+  const animate = isInView
+    ? { opacity: 1, x: 0, y: 0 }
+    : initial;
 
   return (
     <motion.div
       ref={ref}
       className={className}
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      initial={prefersReducedMotion ? false : initial}
+      animate={animate}
       transition={{
-        duration: 0.6,
-        ease: [0.25, 0.1, 0.25, 1],
+        duration: 0.7,
+        ease: [0.16, 1, 0.3, 1],
         delay,
       }}
     >

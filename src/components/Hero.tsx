@@ -35,7 +35,7 @@ export default function Hero() {
 
           {/* Headline */}
           <motion.h1
-            className="text-[clamp(2.75rem,5.5vw,4.25rem)] font-extrabold text-white tracking-tight leading-[1.05]"
+            className="text-[clamp(2.75rem,5.5vw,4.25rem)] max-lg:text-[clamp(2.75rem,10vw,4.25rem)] font-extrabold text-white tracking-tight leading-[1.05]"
             style={{ letterSpacing: '-0.035em' }}
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -54,9 +54,19 @@ export default function Hero() {
             {COPY.hero.sub}
           </motion.p>
 
+          {/* Terminal compact - mobile only */}
+          <motion.div
+            className="mt-6 block lg:hidden"
+            initial={noMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalCompact />
+          </motion.div>
+
           {/* CTA row */}
           <motion.div
-            className="flex items-center gap-6 mt-8"
+            className="flex items-center gap-6 mt-8 max-lg:flex-col max-lg:items-stretch"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -64,7 +74,7 @@ export default function Hero() {
             <MagneticButton>
               <a
                 href={`mailto:${COPY.contact.email}`}
-                className="group inline-flex items-center gap-2 font-mono text-base tracking-wide text-white bg-accent rounded-sm px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit"
+                className="group inline-flex items-center gap-2 font-mono text-base tracking-wide text-white bg-accent rounded-sm px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:w-full max-lg:justify-center max-lg:py-4"
               >
                 {COPY.hero.cta}
                 <span className="inline-block transition-transform group-hover:translate-x-1" aria-hidden="true">
@@ -75,7 +85,7 @@ export default function Hero() {
 
             <a
               href="#proof"
-              className="group font-mono text-sm text-dim hover:text-text transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit"
+              className="group font-mono text-sm text-dim hover:text-text transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:text-center"
             >
               {COPY.hero.ghost}
               <span className="ml-1" aria-hidden="true">↓</span>
@@ -83,15 +93,6 @@ export default function Hero() {
             </a>
           </motion.div>
 
-          {/* Terminal compact - mobile only */}
-          <motion.div
-            className="mt-10 block lg:hidden"
-            initial={noMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <TerminalCompact />
-          </motion.div>
         </div>
 
         {/* Right column - Terminal (desktop only) */}

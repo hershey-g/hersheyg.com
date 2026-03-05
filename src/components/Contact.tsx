@@ -34,6 +34,7 @@ export default function Contact() {
                   e.currentTarget.style.boxShadow = '0 0 0 0 rgba(59, 124, 192, 0)';
                 }}
               >
+                <span className="absolute inset-0 bg-accent-lit scale-0 group-hover:scale-100 rounded-full transition-transform duration-500 origin-center" aria-hidden="true" />
                 <span className="relative z-10">{COPY.contact.email}</span>
                 <span className="relative z-10 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" aria-hidden="true">
                   →

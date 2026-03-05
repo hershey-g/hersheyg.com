@@ -1,8 +1,6 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface IntakeBody {
   type?: string;
   describe?: string;
@@ -23,6 +21,7 @@ function truncateField(val: string | undefined, max: number): string | undefined
 }
 
 export async function POST(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const body: IntakeBody = await request.json();
     const type = truncateField(body.type, 100);

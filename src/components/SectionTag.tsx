@@ -4,7 +4,7 @@ interface SectionTagProps {
 
 export default function SectionTag({ children }: SectionTagProps) {
   return (
-    <span className="font-mono text-xs tracking-widest uppercase text-accent">
+    <span className="font-mono text-xs tracking-widest uppercase text-accent-lit">
       {children}
     </span>
   );

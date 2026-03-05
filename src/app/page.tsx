@@ -1,7 +1,5 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-import Terminal from "@/components/Terminal";
-import TerminalCompact from "@/components/TerminalCompact";
 import AnimatedHR from "@/components/AnimatedHR";
 import Services from "@/components/Services";
 import Proof from "@/components/Proof";
@@ -21,12 +19,6 @@ export default function Home() {
 
       <main className="relative z-10">
         <Hero />
-
-        <div className="mx-auto max-w-6xl px-6">
-          <Terminal />
-          <TerminalCompact />
-        </div>
-
         <AnimatedHR />
         <Services />
         <AnimatedHR />

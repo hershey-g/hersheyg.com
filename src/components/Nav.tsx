@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const NAV_LINKS = [
-  { label: "Services", href: "#services" },
-  { label: "Proof", href: "#proof" },
-  { label: "Contact", href: "#contact" },
+  { label: "services", href: "#services" },
+  { label: "proof", href: "#proof" },
+  { label: "contact", href: "#contact" },
 ] as const;
 
 export default function Nav() {
@@ -39,17 +39,26 @@ export default function Nav() {
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
-    <nav
+    <motion.nav
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
       className={`fixed top-0 left-0 w-full z-40 transition-colors duration-300 ${
         scrolled
-          ? "bg-bg/80 backdrop-blur-md border-b border-border"
+          ? "bg-bg/80 backdrop-blur-md border-b border-line"
           : "border-b border-transparent"
       }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* Monogram */}
-        <a href="#" className="font-mono text-accent font-bold text-lg">
-          HG
+        {/* Wordmark */}
+        <a href="#" className="flex items-center text-sm">
+          <span className="font-bold uppercase tracking-[0.14em] text-white">
+            HERSHEY
+          </span>
+          <span className="font-light text-dim mx-1.5">/</span>
+          <span className="font-light uppercase tracking-[0.1em] text-text">
+            GOLDBERGER
+          </span>
         </a>
 
         {/* Desktop links */}
@@ -58,37 +67,31 @@ export default function Nav() {
             <li key={link.href}>
               <a
                 href={link.href}
-                className="text-text-dim hover:text-text transition-colors text-sm"
+                className="text-dim hover:text-text transition-colors text-sm"
               >
                 {link.label}
               </a>
             </li>
           ))}
+          <li>
+            <a
+              href="mailto:hello@hersheyg.com"
+              className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
+            >
+              hello@hersheyg.com
+            </a>
+          </li>
         </ul>
 
-        {/* Mobile hamburger */}
+        {/* Mobile toggle */}
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="relative flex md:hidden h-6 w-6 flex-col items-center justify-center gap-1.5"
+          className="flex md:hidden font-mono text-sm text-dim"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
         >
-          <span
-            className={`block h-0.5 w-5 rounded-full bg-text transition-all duration-300 ${
-              menuOpen ? "translate-y-2 rotate-45" : ""
-            }`}
-          />
-          <span
-            className={`block h-0.5 w-5 rounded-full bg-text transition-all duration-300 ${
-              menuOpen ? "opacity-0" : "opacity-100"
-            }`}
-          />
-          <span
-            className={`block h-0.5 w-5 rounded-full bg-text transition-all duration-300 ${
-              menuOpen ? "-translate-y-2 -rotate-45" : ""
-            }`}
-          />
+          {menuOpen ? "close" : "menu"}
         </button>
       </div>
 
@@ -120,16 +123,23 @@ export default function Nav() {
                   <a
                     href={link.href}
                     onClick={closeMenu}
-                    className="text-text text-3xl font-medium transition-colors hover:text-accent"
+                    className="text-text text-3xl font-medium transition-colors hover:text-accent-lit"
                   >
                     {link.label}
                   </a>
                 </li>
               ))}
             </ul>
+            <a
+              href="mailto:hello@hersheyg.com"
+              onClick={closeMenu}
+              className="mt-12 border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
+            >
+              hello@hersheyg.com
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </motion.nav>
   );
 }

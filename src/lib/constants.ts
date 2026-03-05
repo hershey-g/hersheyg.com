@@ -1,74 +1,91 @@
 export const COPY = {
-  name: "Hershey Goldberger",
-  role: "Full-Stack Engineer",
-  headline: "I build things for the web.",
-  subline:
-    "Full-stack engineer focused on clean code, sharp interfaces, and products that just work.",
+  meta: {
+    title: 'Hershey Goldberger',
+    description: 'Agentic AI systems and full-stack products. Production-grade. One engineer.',
+  },
+  hero: {
+    eyebrow: 'Building agentic AI that runs in production',
+    headline: 'Your AI\nshouldn\'t need\na babysitter.',
+    sub: 'I architect autonomous systems that replace workflows, not assist them. When something breaks, I fix it at the source. One engineer. Full ownership. No layers.',
+    cta: 'Start a conversation',
+    ghost: 'See the work',
+  },
   nav: {
-    services: "Services",
-    proof: "Proof",
-    contact: "Contact",
+    services: 'services',
+    proof: 'proof',
+    contact: 'contact',
   },
   services: {
-    tag: "01 // Services",
-    heading: "What I do",
-    headingDim: "and do well",
-    items: [
+    tag: '01 // Services',
+    heading: ['What gets built.', 'What gets shipped.'],
+    cards: [
       {
-        title: "Frontend Development",
-        description:
-          "Responsive, performant interfaces built with React, Next.js, and modern CSS. Pixel-perfect execution from design to deployment.",
-        icon: "layout",
+        num: '01',
+        title: 'Agent Deployment',
+        body: 'Production AI agents across Telegram, WhatsApp, Slack, and voice. Deployed, monitored, running.',
+        tags: ['OpenClaw', 'Twilio', 'WhatsApp API', 'Slack', 'Telegram'],
       },
       {
-        title: "Backend Engineering",
-        description:
-          "APIs, databases, and server infrastructure. Node.js, PostgreSQL, and cloud services that scale with your product.",
-        icon: "server",
+        num: '02',
+        title: 'Custom AI Systems',
+        body: 'Autonomous agents and workflows architected for your business logic. Multi-step reasoning, tool use, human-in-the-loop when needed.',
+        tags: ['LLM Orchestration', 'RAG', 'Agents', 'Python', 'TypeScript'],
       },
       {
-        title: "Full-Stack Products",
-        description:
-          "End-to-end product development from architecture to launch. I own the entire stack so nothing falls through the cracks.",
-        icon: "layers",
-      },
-      {
-        title: "Technical Consulting",
-        description:
-          "Architecture reviews, performance audits, and technical strategy. Honest assessments and actionable recommendations.",
-        icon: "terminal",
+        num: '03',
+        title: 'Full-Stack Products',
+        body: 'Database to deploy. Ships like a solo operator. Architects like someone who\'s held the pager at 3am.',
+        tags: ['Next.js', 'React', 'Node', 'Laravel', 'Postgres', 'Vercel'],
       },
     ],
   },
   proof: {
-    tag: "02 // Proof of Work",
-    heading: "By the numbers",
-    headingDim: "not just words",
-    metrics: [
-      { value: 8, suffix: "+", label: "Years of experience" },
-      { value: 50, suffix: "+", label: "Projects shipped" },
-      { value: 99, suffix: "%", label: "Client satisfaction" },
-      { value: 24, suffix: "h", label: "Average response time" },
+    tag: '02 // Proof of Work',
+    heading: ['Numbers.', 'Not narrative.'],
+    cards: [
+      {
+        metric: '180,000+',
+        countTarget: 180000,
+        countSuffix: '+',
+        label: 'Attendees Processed',
+        body: 'Built a custom ticketing platform from scratch. ~$9M in transaction volume. Multi-venue deployments across major arenas. Architected for failure modes, not just the happy path.',
+        badge: 'Production \u00b7 Zero Downtime',
+      },
+      {
+        metric: 'OpenClaw',
+        label: 'Open Source Contributor',
+        body: 'When a client hits a wall, I read the source, write the fix, and push it upstream. Merged PRs in voice/telephony infrastructure and core platform.',
+        badge: 'Merged PRs \u00b7 Core Infra',
+      },
     ],
   },
   contact: {
-    tag: "03 // Contact",
-    heading: "Let's build",
-    headingDim: "something great",
-    body: "Have a project in mind? I'm always open to discussing new opportunities and interesting ideas.",
-    cta: "Get in touch",
-    email: "hello@hersheyg.com",
+    tag: '03 // Contact',
+    heading: 'Got a system that needs building?',
+    sub: 'I take on a limited number of projects at a time. No pitch decks required. Just tell me what you need built.',
+    email: 'hello@hersheyg.com',
+    aside: 'Remote-first.\nBest fit: teams shipping production AI.',
   },
   footer: {
-    copyright: "Hershey Goldberger",
-    tagline: "Built with Next.js, Tailwind, and attention to detail.",
+    left: '\u00a9 YEAR Hershey Goldberger',
+    right: 'Built by hand. Shipped to production.',
   },
+  terminal: {
+    title: '~/projects',
+    lines: [
+      { type: 'cmd', text: '$ deploy --agent ticketing-v3' },
+      { type: 'comment', text: '# multi-venue \u00b7 180k+ attendees' },
+      { type: 'kv', key: 'transactions', value: '$9.2M', color: 'orange' },
+      { type: 'kv', key: 'downtime', value: '0', color: 'green' },
+      { type: 'kv', key: 'status', value: '\u25cf running', color: 'green' },
+      { type: 'blank' },
+      { type: 'cmd', text: '$ git log --oneline openclaw' },
+      { type: 'out', text: '  a3f29c1 feat: twilio call-waiting' },
+      { type: 'out', text: '  e7b14d8 fix: core infra telephony' },
+      { type: 'success', text: '  \u2713 merged to main' },
+      { type: 'blank' },
+      { type: 'cursor' },
+    ],
+  },
+  terminalCompact: '\u25cf running \u00b7 180k+ processed \u00b7 $9.2M volume',
 } as const;
-
-export const TERMINAL_LINES = [
-  { prompt: "whoami", output: "hershey" },
-  { prompt: "cat skills.txt", output: "React, Next.js, TypeScript, Node.js, PostgreSQL, Tailwind" },
-  { prompt: "uptime", output: "8+ years and counting" },
-  { prompt: "echo $STATUS", output: "Available for new projects" },
-  { prompt: "curl -s api.github.com/users/hersheyg | jq .bio", output: '"Building things that matter"' },
-] as const;

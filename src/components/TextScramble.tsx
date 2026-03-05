@@ -11,35 +11,43 @@ interface TextScrambleProps {
 
 export default function TextScramble({ text }: TextScrambleProps) {
   const prefersReducedMotion = useReducedMotion();
-  const [displayed, setDisplayed] = useState(prefersReducedMotion ? text : "");
+  const [displayed, setDisplayed] = useState(text);
+  const [scrambling, setScrambling] = useState(false);
 
   const scramble = useCallback(() => {
-    const duration = 1500;
     const length = text.length;
-    let start: number | null = null;
-    let frameId: number;
+    const stepDuration = 25;
+    let currentIndex = 0;
+    let intervalId: ReturnType<typeof setInterval>;
 
-    function step(timestamp: number) {
-      if (start === null) start = timestamp;
-      const elapsed = timestamp - start;
-      const progress = Math.min(elapsed / duration, 1);
+    setScrambling(true);
 
-      const resolved = Math.floor(progress * length);
+    intervalId = setInterval(() => {
+      currentIndex++;
+      const resolved = Math.min(currentIndex, length);
       let result = text.slice(0, resolved);
 
       for (let i = resolved; i < length; i++) {
-        result += CHARS[Math.floor(Math.random() * CHARS.length)];
+        if (text[i] === '\n') {
+          result += '\n';
+        } else {
+          result += CHARS[Math.floor(Math.random() * CHARS.length)];
+        }
       }
 
       setDisplayed(result);
 
-      if (progress < 1) {
-        frameId = requestAnimationFrame(step);
+      if (resolved >= length) {
+        clearInterval(intervalId);
+        setDisplayed(text);
+        setScrambling(false);
       }
-    }
+    }, stepDuration);
 
-    frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      clearInterval(intervalId);
+      setScrambling(false);
+    };
   }, [text]);
 
   useEffect(() => {
@@ -47,8 +55,34 @@ export default function TextScramble({ text }: TextScrambleProps) {
       setDisplayed(text);
       return;
     }
-    return scramble();
+
+    // Start with scrambled text
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '\n') result += '\n';
+      else result += CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+    setDisplayed(result);
+
+    // Delay before starting scramble
+    const timeout = setTimeout(() => {
+      scramble();
+    }, 600);
+
+    return () => clearTimeout(timeout);
   }, [text, prefersReducedMotion, scramble]);
 
-  return <span className="font-mono">{displayed}</span>;
+  // Render with line breaks
+  const parts = displayed.split('\n');
+
+  return (
+    <span aria-label={text.replace(/\n/g, ' ')}>
+      {parts.map((part, i) => (
+        <span key={i}>
+          {part}
+          {i < parts.length - 1 && <br />}
+        </span>
+      ))}
+    </span>
+  );
 }

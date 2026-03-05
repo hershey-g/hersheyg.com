@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useInView, useReducedMotion } from "framer-motion";
 
+const formatter = new Intl.NumberFormat('en-US');
+
 interface CountUpProps {
   end: number;
   suffix?: string;
   duration?: number;
 }
 
-export default function CountUp({ end, suffix, duration = 2 }: CountUpProps) {
+export default function CountUp({ end, suffix = '', duration = 2.2 }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true });
   const prefersReducedMotion = useReducedMotion();
@@ -30,8 +32,8 @@ export default function CountUp({ end, suffix, duration = 2 }: CountUpProps) {
       const elapsed = timestamp - start;
       const progress = Math.min(elapsed / durationMs, 1);
 
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Quartic ease-out
+      const eased = 1 - Math.pow(1 - progress, 4);
       setValue(Math.floor(eased * end));
 
       if (progress < 1) {
@@ -46,8 +48,8 @@ export default function CountUp({ end, suffix, duration = 2 }: CountUpProps) {
   }, [isInView, end, duration, prefersReducedMotion]);
 
   return (
-    <span ref={ref} className="font-mono tabular-nums">
-      {value}
+    <span ref={ref} className="tabular-nums">
+      {formatter.format(value)}
       {suffix}
     </span>
   );

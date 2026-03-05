@@ -17,9 +17,9 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Hershey Goldberger",
   description:
-    "Full-stack engineer building polished digital products. Specializing in React, Next.js, and modern web development.",
+    "Agentic AI systems and full-stack products. Production-grade. One engineer.",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='monospace' fill='%236ee7b7'>HG</text></svg>",
+    icon: '/favicon.svg',
   },
 };
 

@@ -13,7 +13,7 @@ interface DotGridProps {
 export default function DotGrid({
   dotRadius = 1,
   spacing = 30,
-  dotColor = "rgba(255,255,255,0.07)",
+  dotColor = "rgba(59, 124, 192, 0.04)",
   highlightRadius = 120,
 }: DotGridProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -53,7 +53,7 @@ export default function DotGrid({
           ctx.arc(x, y, radius, 0, Math.PI * 2);
 
           if (mouse && !prefersReducedMotion && alpha > 0.07) {
-            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            ctx.fillStyle = `rgba(59, 124, 192, ${alpha})`;
           } else {
             ctx.fillStyle = dotColor;
           }
@@ -94,13 +94,33 @@ export default function DotGrid({
       window.addEventListener("mousemove", handleMouseMove);
     }
 
+    let paused = false;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        paused = true;
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = 0;
+        }
+      } else {
+        paused = false;
+        if (!prefersReducedMotion) {
+          rafRef.current = requestAnimationFrame(loop);
+        }
+      }
+    };
+
     const loop = () => {
+      if (paused) return;
       draw(ctx, window.innerWidth, window.innerHeight);
 
       if (!prefersReducedMotion) {
         rafRef.current = requestAnimationFrame(loop);
       }
     };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     if (prefersReducedMotion) {
       draw(ctx, window.innerWidth, window.innerHeight);
@@ -111,6 +131,7 @@ export default function DotGrid({
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }

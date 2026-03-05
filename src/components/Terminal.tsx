@@ -1,204 +1,152 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import { TERMINAL_LINES } from "@/lib/constants";
+import { COPY } from "@/lib/constants";
 
-interface LineState {
-  promptDone: boolean;
-  promptChars: number;
-  outputDone: boolean;
-  outputChars: number;
+const lines = COPY.terminal.lines;
+
+// Timing constants
+const CMD_PAUSE = 600;
+const OUTPUT_PAUSE = 120;
+const BLANK_PAUSE = 200;
+
+function getLineDelay(type: string) {
+  if (type === "cmd") return CMD_PAUSE;
+  if (type === "blank") return BLANK_PAUSE;
+  return OUTPUT_PAUSE;
 }
-
-function buildInitialState(skipAnimation: boolean): LineState[] {
-  return TERMINAL_LINES.map(() => ({
-    promptDone: skipAnimation,
-    promptChars: skipAnimation ? Infinity : 0,
-    outputDone: skipAnimation,
-    outputChars: skipAnimation ? Infinity : 0,
-  }));
-}
-
-const TYPING_SPEED = 38;
-const LINE_PAUSE = 320;
-const OUTPUT_PAUSE = 160;
 
 export default function Terminal() {
   const prefersReducedMotion = useReducedMotion();
-  const [lines, setLines] = useState<LineState[]>(() =>
-    buildInitialState(!!prefersReducedMotion)
+  const [visibleCount, setVisibleCount] = useState(
+    prefersReducedMotion ? lines.length : 0
   );
-  const [allDone, setAllDone] = useState(!!prefersReducedMotion);
-
-  const tick = useCallback(() => {
-    setLines((prev) => {
-      const next = prev.map((l) => ({ ...l }));
-
-      for (let i = 0; i < TERMINAL_LINES.length; i++) {
-        const line = next[i];
-        const source = TERMINAL_LINES[i];
-
-        if (!line.promptDone) {
-          if (line.promptChars < source.prompt.length) {
-            line.promptChars += 1;
-            return next;
-          }
-          line.promptDone = true;
-          return next;
-        }
-
-        if (!line.outputDone) {
-          if (line.outputChars < source.output.length) {
-            line.outputChars += 1;
-            return next;
-          }
-          line.outputDone = true;
-          return next;
-        }
-      }
-
-      return prev;
-    });
-  }, []);
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setLines(buildInitialState(true));
-      setAllDone(true);
+      setVisibleCount(lines.length);
       return;
     }
 
+    let current = 0;
     let timeoutId: ReturnType<typeof setTimeout>;
-    let stopped = false;
 
-    function schedule() {
-      if (stopped) return;
+    function showNext() {
+      if (current >= lines.length) return;
+      const line = lines[current];
+      const delay = getLineDelay(line.type);
 
-      setLines((prev) => {
-        // Determine current phase to pick the right delay
-        let delay = TYPING_SPEED;
-
-        for (let i = 0; i < TERMINAL_LINES.length; i++) {
-          const line = prev[i];
-          const source = TERMINAL_LINES[i];
-
-          if (!line.promptDone) {
-            if (line.promptChars >= source.prompt.length) {
-              delay = OUTPUT_PAUSE;
-            }
-            break;
-          }
-          if (!line.outputDone) {
-            if (line.outputChars >= source.output.length) {
-              delay = LINE_PAUSE;
-            }
-            break;
-          }
-        }
-
-        // Check if all done
-        const done = prev.every((l) => l.promptDone && l.outputDone);
-        if (done) {
-          setAllDone(true);
-          return prev;
-        }
-
-        timeoutId = setTimeout(() => {
-          tick();
-          schedule();
-        }, delay);
-
-        return prev;
-      });
+      timeoutId = setTimeout(() => {
+        current++;
+        setVisibleCount(current);
+        showNext();
+      }, delay);
     }
 
-    // Kick off after a short initial delay
+    // Start after 1.4s hero delay
     timeoutId = setTimeout(() => {
-      tick();
-      schedule();
-    }, 600);
+      showNext();
+    }, 1400);
 
-    return () => {
-      stopped = true;
-      clearTimeout(timeoutId);
-    };
-  }, [prefersReducedMotion, tick]);
+    return () => clearTimeout(timeoutId);
+  }, [prefersReducedMotion]);
 
   return (
-    <div className="hidden lg:block">
-      <div className="terminal-border rounded-lg">
-        {/* Header bar */}
-        <div className="flex items-center gap-2 border-b border-border-dim px-4 py-3">
-          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-          <span className="ml-2 font-mono text-xs text-text-muted">
-            hershey@dev ~
-          </span>
+    <div
+      className="terminal-border rounded-md bg-bg-2/50 backdrop-blur-[12px] border border-line"
+      aria-hidden="true"
+    >
+      {/* Title bar */}
+      <div className="flex items-center px-4 py-3 border-b border-line">
+        <div className="flex gap-2">
+          <span className="h-3 w-3 rounded-full bg-[#ef4444]/60" />
+          <span className="h-3 w-3 rounded-full bg-[#eab308]/60" />
+          <span className="h-3 w-3 rounded-full bg-[#22c55e]/60" />
         </div>
+        <span className="flex-1 text-center font-mono text-xs text-dim">
+          {COPY.terminal.title}
+        </span>
+        <div className="w-[52px]" />
+      </div>
 
-        {/* Body */}
-        <div className="bg-bg-card p-4 font-mono text-sm leading-relaxed rounded-b-lg">
-          {TERMINAL_LINES.map((source, i) => {
-            const state = lines[i];
-            const promptText = state
-              ? source.prompt.slice(0, Math.min(state.promptChars, source.prompt.length))
-              : "";
-            const outputText =
-              state && state.promptDone
-                ? source.output.slice(0, Math.min(state.outputChars, source.output.length))
-                : "";
+      {/* Body */}
+      <div className="p-4 font-mono text-sm leading-relaxed">
+        {lines.map((line, i) => {
+          if (i >= visibleCount) return null;
 
-            const showPromptCursor =
-              !allDone && state && !state.promptDone && state.promptChars < source.prompt.length;
-            const showOutputCursor =
-              !allDone &&
-              state &&
-              state.promptDone &&
-              !state.outputDone &&
-              state.outputChars < source.output.length;
+          if (line.type === "blank") {
+            return <div key={i} className="h-4" />;
+          }
 
-            // Only render lines that have started typing
-            if (state && state.promptChars === 0 && !state.promptDone) {
-              // Check if previous line is done
-              if (i > 0) {
-                const prevState = lines[i - 1];
-                if (!prevState || !prevState.outputDone) return null;
-              }
-              // First line always renders
-              if (i > 0) return null;
-            }
-
+          if (line.type === "cursor") {
             return (
-              <div key={i} className="mb-1">
-                <div>
-                  <span className="text-accent">$</span>{" "}
-                  <span className="text-text">{promptText}</span>
-                  {showPromptCursor && (
-                    <span className="animate-pulse text-accent">_</span>
-                  )}
-                </div>
-                {state && state.promptDone && outputText.length > 0 && (
-                  <div className="text-text-dim">
-                    {outputText}
-                    {showOutputCursor && (
-                      <span className="animate-pulse text-accent">_</span>
-                    )}
-                  </div>
-                )}
+              <div key={i}>
+                <span className="text-[#22c55e]">$</span>{" "}
+                <span
+                  className="inline-block w-2 h-4 bg-[#22c55e] align-middle"
+                  style={{ animation: "blink 1s step-end infinite" }}
+                />
               </div>
             );
-          })}
+          }
 
-          {/* Final blinking cursor */}
-          {allDone && (
-            <div>
-              <span className="text-accent">$</span>{" "}
-              <span className="animate-pulse text-accent">_</span>
-            </div>
-          )}
-        </div>
+          if (line.type === "cmd") {
+            const text = (line as { type: "cmd"; text: string }).text;
+            const afterPrompt = text.startsWith("$ ") ? text.slice(2) : text;
+            return (
+              <div key={i}>
+                <span className="text-[#22c55e]">$</span>{" "}
+                <span className="text-text">{afterPrompt}</span>
+              </div>
+            );
+          }
+
+          if (line.type === "comment") {
+            return (
+              <div key={i} className="text-dim italic">
+                {(line as { type: "comment"; text: string }).text}
+              </div>
+            );
+          }
+
+          if (line.type === "kv") {
+            const kv = line as {
+              type: "kv";
+              key: string;
+              value: string;
+              color: string;
+            };
+            const valueColor =
+              kv.color === "orange" ? "text-[#f59e42]" : "text-[#34d399]";
+            const padding = " ".repeat(Math.max(1, 14 - kv.key.length));
+            return (
+              <div key={i}>
+                <span className="text-accent-lit">{"  "}{kv.key}</span>
+                {padding}
+                <span className={valueColor}>{kv.value}</span>
+              </div>
+            );
+          }
+
+          if (line.type === "out") {
+            return (
+              <div key={i} className="text-body">
+                {(line as { type: "out"; text: string }).text}
+              </div>
+            );
+          }
+
+          if (line.type === "success") {
+            return (
+              <div key={i} className="text-[#34d399]">
+                {(line as { type: "success"; text: string }).text}
+              </div>
+            );
+          }
+
+          return null;
+        })}
       </div>
     </div>
   );

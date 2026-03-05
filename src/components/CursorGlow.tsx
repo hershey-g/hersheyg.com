@@ -8,7 +8,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 
-const GLOW_SIZE = 600;
+const GLOW_SIZE = 400;
 
 const springConfig = { damping: 25, stiffness: 200, mass: 0.5 };
 
@@ -50,7 +50,7 @@ export default function CursorGlow() {
         width: GLOW_SIZE,
         height: GLOW_SIZE,
         background:
-          "radial-gradient(circle, rgba(110, 231, 183, 0.06) 0%, transparent 70%)",
+          "radial-gradient(circle, rgba(59, 124, 192, 0.08) 0%, transparent 70%)",
         borderRadius: "50%",
       }}
     />

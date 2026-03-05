@@ -4,91 +4,15 @@ import { useRef, useState, useCallback } from "react";
 import { useReducedMotion } from "framer-motion";
 
 interface ServiceCardProps {
+  num: string;
   title: string;
-  description: string;
-  icon: string;
+  body: string;
+  tags: string[];
 }
 
-const icons: Record<string, React.ReactNode> = {
-  layout: (
-    <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 9h18" />
-      <path d="M9 9v12" />
-    </svg>
-  ),
-  server: (
-    <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="20" height="8" rx="2" />
-      <rect x="2" y="14" width="20" height="8" rx="2" />
-      <circle cx="6" cy="6" r="1" fill="currentColor" stroke="none" />
-      <circle cx="6" cy="18" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  layers: (
-    <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-    </svg>
-  ),
-  terminal: (
-    <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 17l6-5-6-5" />
-      <path d="M12 19h8" />
-    </svg>
-  ),
-};
-
-export default function ServiceCard({
-  title,
-  description,
-  icon,
-}: ServiceCardProps) {
+export default function ServiceCard({ num, title, body, tags }: ServiceCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [glowPos, setGlowPos] = useState<{ x: number; y: number } | null>(
-    null,
-  );
+  const [glowPos, setGlowPos] = useState<{ x: number; y: number } | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   const handleMouseMove = useCallback(
@@ -114,22 +38,32 @@ export default function ServiceCard({
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative overflow-hidden bg-bg-card border border-border rounded-lg p-6 hover:border-accent/30 transition-colors"
+      className="group relative overflow-hidden bg-bg p-8 hover:bg-bg-2 transition-colors"
     >
+      {/* Cursor glow */}
       {glowPos && (
         <div
           className="pointer-events-none absolute inset-0"
           style={{
-            background: `radial-gradient(320px circle at ${glowPos.x}px ${glowPos.y}px, var(--color-glow), transparent 70%)`,
+            background: `radial-gradient(300px circle at ${glowPos.x}px ${glowPos.y}px, rgba(59,124,192,0.1), transparent 60%)`,
           }}
         />
       )}
+
       <div className="relative">
-        <span className="text-accent">{icons[icon]}</span>
-        <h3 className="text-lg font-semibold text-text mt-4">{title}</h3>
-        <p className="text-sm text-text-dim mt-2 leading-relaxed">
-          {description}
-        </p>
+        <span className="font-mono text-xs text-dim mb-6 block">{num}</span>
+        <h3 className="font-semibold text-white text-lg mb-3">{title}</h3>
+        <p className="text-base text-body leading-relaxed">{body}</p>
+        <div className="flex flex-wrap gap-1.5 mt-5">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="font-mono text-xs text-dim border border-line rounded-sm px-2 py-0.5 group-hover:text-body group-hover:border-white/10 transition-colors"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

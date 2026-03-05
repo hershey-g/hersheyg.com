@@ -10,19 +10,15 @@ export default function Proof() {
       <div className="max-w-6xl mx-auto px-6">
         <RevealOnScroll>
           <SectionTag>{COPY.proof.tag}</SectionTag>
-          <SectionHead dim={COPY.proof.headingDim}>
-            {COPY.proof.heading}
-          </SectionHead>
+          <div className="mt-4">
+            <SectionHead bold={COPY.proof.heading[0]} dim={COPY.proof.heading[1]} />
+          </div>
         </RevealOnScroll>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
-          {COPY.proof.metrics.map((metric, i) => (
-            <RevealOnScroll key={metric.label} delay={i * 0.1}>
-              <ProofCard
-                value={metric.value}
-                suffix={metric.suffix}
-                label={metric.label}
-              />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+          {COPY.proof.cards.map((card, i) => (
+            <RevealOnScroll key={i} delay={i * 0.12}>
+              <ProofCard card={card} />
             </RevealOnScroll>
           ))}
         </div>

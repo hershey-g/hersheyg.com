@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import ScrambleReveal from "./ScrambleReveal";
 import { COPY } from "@/lib/constants";
 
@@ -12,9 +13,51 @@ interface ProofCardProps {
 
 export default function ProofCard({ card }: ProofCardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (prefersReducedMotion) return;
+      const el = cardRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      const rotateY = (x - 0.5) * 8; // max ±4deg
+      const rotateX = (0.5 - y) * 8;
+      el.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      el.style.setProperty("--glow-x", `${x * 100}%`);
+      el.style.setProperty("--glow-y", `${y * 100}%`);
+      el.style.setProperty("--glow-opacity", "1");
+    },
+    [prefersReducedMotion]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "";
+    el.style.setProperty("--glow-opacity", "0");
+  }, []);
 
   return (
-    <div className="relative bg-[rgba(15,30,50,0.4)] border border-line rounded-md overflow-hidden hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-all duration-300">
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ transition: "transform 0.3s ease-out", willChange: "transform" } as React.CSSProperties}
+      className="relative bg-[rgba(15,30,50,0.4)] border border-line rounded-md overflow-hidden hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-all duration-300"
+    >
+      {/* Cursor-following glow overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-300"
+        style={{
+          background: "radial-gradient(400px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(59,124,192,0.10), transparent 60%)",
+          opacity: "var(--glow-opacity, 0)",
+        }}
+        aria-hidden="true"
+      />
       {/* Header strip */}
       <div className="flex items-center gap-2 px-9 py-3 bg-[rgba(59,124,192,0.08)]">
         <span

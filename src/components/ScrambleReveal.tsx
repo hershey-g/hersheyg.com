@@ -7,6 +7,13 @@ const CHARS = "0123456789,+$#&!@%ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const FRAME_MS = 35;
 const TOTAL_FRAMES = 18;
 
+function scramble(text: string): string {
+  return text
+    .split("")
+    .map((c) => (c === " " ? " " : CHARS[Math.floor(Math.random() * CHARS.length)]))
+    .join("");
+}
+
 interface ScrambleRevealProps {
   text: string;
   delay?: number;
@@ -17,7 +24,9 @@ export default function ScrambleReveal({ text, delay = 0, className }: ScrambleR
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true });
   const prefersReducedMotion = useReducedMotion();
-  const [display, setDisplay] = useState(text);
+  const [display, setDisplay] = useState(() =>
+    prefersReducedMotion ? text : scramble(text)
+  );
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {

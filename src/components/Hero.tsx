@@ -12,7 +12,7 @@ export default function Hero() {
   const noMotion = !!prefersReducedMotion;
 
   return (
-    <section id="hero" className="relative flex min-h-screen items-center px-6">
+    <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-28 pb-16 lg:pt-0 lg:pb-0 px-6">
       <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-16 items-center">
         {/* Left column */}
         <div>

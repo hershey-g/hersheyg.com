@@ -21,20 +21,20 @@ export const COPY = {
     cards: [
       {
         num: '01',
-        title: 'Agent Deployment',
-        body: 'Production AI agents across Telegram, WhatsApp, Slack, and voice. Deployed, monitored, running.',
-        tags: ['OpenClaw', 'Twilio', 'WhatsApp API', 'Slack', 'Telegram'],
+        title: 'AI Agents on WhatsApp & Beyond',
+        body: 'Your business, available on WhatsApp. I build AI agents that book appointments, answer questions, and handle orders — right where your customers already chat. Also deploys to Slack, Telegram, and voice.',
+        tags: ['WhatsApp Business API', 'Twilio', 'Slack', 'Telegram', 'Voice'],
       },
       {
         num: '02',
         title: 'Custom AI Systems',
-        body: 'Autonomous agents and workflows architected for your business logic. Multi-step reasoning, tool use, human-in-the-loop when needed.',
+        body: 'AI that does the work, not just the thinking. I build systems that read your data, make decisions, and take action — with a human check when the stakes are high.',
         tags: ['LLM Orchestration', 'RAG', 'Agents', 'Python', 'TypeScript'],
       },
       {
         num: '03',
         title: 'Full-Stack Products',
-        body: 'Database to deploy. Ships like a solo operator. Architects like someone who\'s held the pager at 3am.',
+        body: 'Database to deploy. Architected by someone who\'s held the pager at 3am.',
         tags: ['Next.js', 'React', 'Node', 'Laravel', 'Postgres', 'Vercel'],
       },
     ],
@@ -81,7 +81,7 @@ export const COPY = {
       { type: 'comment', text: '# multi-venue \u00b7 180k+ attendees' },
       { type: 'kv', key: 'transactions', value: '$9.2M', color: 'orange' },
       { type: 'kv', key: 'downtime', value: '0', color: 'green' },
-      { type: 'kv', key: 'status', value: '\u25cf running', color: 'green' },
+      { type: 'kv', key: 'status', value: '\u25cf Live in production', color: 'green' },
       { type: 'blank' },
       { type: 'cmd', text: '$ git log --oneline openclaw' },
       { type: 'out', text: '  a3f29c1 feat: twilio call-waiting' },
@@ -91,5 +91,6 @@ export const COPY = {
       { type: 'cursor' },
     ],
   },
-  terminalCompact: '\u25cf running \u00b7 180k+ processed \u00b7 $9.2M volume',
+  terminalCompact: '\u25cf Live in production \u00b7 180k+ processed \u00b7 $9.2M volume',
+  mobileMenuStats: ['Live in production', '180k+ processed'],
 } as const;

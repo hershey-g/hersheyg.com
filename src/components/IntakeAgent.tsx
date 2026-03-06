@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useInView, useReducedMotion } from "framer-motion";
 import { STEPS, AGENT_RESPONSES, type AgentStep } from "./intake-agent-constants";
+import { DEMO_SCRIPTS, DEMO_TIMING, createRotation, type DemoMessage } from "./conversation-constants";
 
 // Types
 
@@ -14,19 +15,12 @@ interface Message {
 type Answers = Record<string, string>;
 
 type Phase =
-  | { kind: "boot" }
+  | { kind: "demo" }
   | { kind: "typing" }
   | { kind: "options"; stepId: string; options: string[] }
   | { kind: "input"; stepId: string; inputType: "input" | "textarea"; placeholder: string }
   | { kind: "summary"; answers: Answers; ref: string }
   | { kind: "done" };
-
-const BOOT_LINES = [
-  "> initializing intake agent...",
-  "> loading project context...",
-  "> scanning availability...",
-  "> ready. starting session.",
-];
 
 // Helpers
 
@@ -217,14 +211,15 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
 
 export default function IntakeAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [phase, setPhase] = useState<Phase>({ kind: "boot" });
-  const [bootLines, setBootLines] = useState<string[]>([]);
+  const [phase, setPhase] = useState<Phase>({ kind: "demo" });
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [summaryRef, setSummaryRef] = useState("");
   const sectionRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const hasRun = useRef(false);
+  const getNextScript = useRef(createRotation(DEMO_SCRIPTS)).current;
+  const [demoMessages, setDemoMessages] = useState<DemoMessage[]>([]);
   const timeoutIds = useRef<NodeJS.Timeout[]>([]);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
   const prefersReducedMotion = useReducedMotion();
@@ -240,6 +235,44 @@ export default function IntakeAgent() {
       if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
     });
   }, []);
+
+  const playDemo = useCallback(async () => {
+    const script = getNextScript();
+    setPhase({ kind: "demo" });
+
+    for (const msg of script.messages) {
+      if (msg.from === "visitor") {
+        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.visitorDelay));
+        setDemoMessages((prev) => [...prev, msg]);
+        scrollToBottom();
+        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.messageReveal));
+      } else {
+        // Show typing indicator
+        setPhase({ kind: "typing" });
+        scrollToBottom();
+        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.agentTypingShow));
+        // Show agent message
+        setDemoMessages((prev) => [...prev, msg]);
+        setPhase({ kind: "demo" });
+        scrollToBottom();
+        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.agentDelay));
+      }
+    }
+
+    // Pause after script completes
+    await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.pauseAfterScript));
+
+    // Clear demo and transition
+    setDemoMessages([]);
+    setPhase({ kind: "typing" });
+    scrollToBottom();
+
+    // Bridge message: "That was a real project. Yours could be next."
+    await new Promise<void>((r) => trackedTimeout(r, 800));
+    setMessages((prev) => [...prev, { from: "agent", text: "That was a real project. Yours could be next." }]);
+    scrollToBottom();
+    await new Promise<void>((r) => trackedTimeout(r, 1200));
+  }, [getNextScript, scrollToBottom, trackedTimeout]);
 
   // Resolver ref for async user input
   const resolverRef = useRef<((val: string) => void) | null>(null);
@@ -396,29 +429,18 @@ export default function IntakeAgent() {
     if (!isInView || hasRun.current) return;
     hasRun.current = true;
 
-    // Skip boot for reduced motion — go straight to chat flow
+    // Skip demo for reduced motion — go straight to chat flow
     if (prefersReducedMotion) {
       setPhase({ kind: "typing" });
       runFlow();
       return;
     }
 
-    // Boot sequence: show CLI lines one by one
-    let i = 0;
-    const showNextLine = () => {
-      if (i < BOOT_LINES.length) {
-        setBootLines((prev) => [...prev, BOOT_LINES[i]]);
-        i++;
-        trackedTimeout(showNextLine, 800);
-      } else {
-        // Boot done — transition to chat flow
-        trackedTimeout(() => {
-          setPhase({ kind: "typing" });
-          runFlow();
-        }, 600);
-      }
-    };
-    trackedTimeout(showNextLine, 400);
+    // Play conversation demo, then start intake flow
+    (async () => {
+      await playDemo();
+      runFlow();
+    })();
 
     return () => {
       timeoutIds.current.forEach(clearTimeout);
@@ -430,7 +452,7 @@ export default function IntakeAgent() {
   // Auto-scroll on message/phase changes
   useEffect(() => {
     scrollToBottom();
-  }, [messages, phase, bootLines, scrollToBottom]);
+  }, [messages, phase, demoMessages, scrollToBottom]);
 
   const isDone = phase.kind === "done" || phase.kind === "summary";
   const displayStep = isDone ? STEPS.length : Math.min(stepIndex + 1, STEPS.length);
@@ -461,17 +483,19 @@ export default function IntakeAgent() {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
               <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
               <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
-              <div className="flex items-center gap-2">
-                <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-sky-400 rounded-full transition-all duration-500"
-                    style={{ width: `${progress}%` }}
-                  />
+              {phase.kind !== "demo" && (
+                <div className="flex items-center gap-2">
+                  <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    {displayStep}/{STEPS.length}
+                  </span>
                 </div>
-                <span className="font-mono text-[11px] text-slate-400">
-                  {displayStep}/{STEPS.length}
-                </span>
-              </div>
+              )}
             </div>
 
             {/* Chat body */}
@@ -479,15 +503,16 @@ export default function IntakeAgent() {
               ref={chatRef}
               className="p-6 font-mono text-sm leading-relaxed min-h-[380px] max-h-[520px] overflow-y-auto scroll-smooth intake-scroll"
             >
-              {phase.kind === "boot" && (
-                <div className="space-y-2 intake-animate-in">
-                  {bootLines.map((line, i) => (
-                    <p key={i} className="text-[13px] text-slate-400 font-mono intake-animate-in">{line}</p>
-                  ))}
-                  {bootLines.length < BOOT_LINES.length && (
-                    <span className="inline-block w-2 h-4 bg-slate-500 animate-pulse" />
+              {(phase.kind === "demo" || (phase.kind === "typing" && demoMessages.length > 0 && messages.length === 0)) && (
+                <>
+                  {demoMessages.map((msg, i) =>
+                    msg.from === "agent" ? (
+                      <AgentMessage key={`demo-${i}`} text={msg.text} />
+                    ) : (
+                      <UserMessage key={`demo-${i}`} text={msg.text} />
+                    )
                   )}
-                </div>
+                </>
               )}
 
               {messages.map((msg, i) =>

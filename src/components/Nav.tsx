@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { COPY } from "@/lib/constants";
 
 const NAV_LINKS = [
-  { label: "build", href: "#services" },
-  { label: "proof", href: "#proof" },
-  { label: "contact", href: "#contact" },
+  { label: "what I build", href: "#services" },
+  { label: "proof of work", href: "#proof" },
+  { label: "let's talk", href: "#contact" },
 ] as const;
 
 export default function Nav() {
@@ -57,8 +58,6 @@ export default function Nav() {
     return () => mq.removeEventListener("change", handler);
   }, [menuOpen]);
 
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
-
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -104,26 +103,21 @@ export default function Nav() {
           </a>
 
           {/* Desktop links */}
-          <ul className="hidden md:flex items-center gap-8">
+          <ul className="hidden md:flex items-center gap-6">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="text-dim hover:text-text transition-colors text-sm"
+                  className={
+                    link.href === "#contact"
+                      ? "border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
+                      : "text-dim hover:text-text transition-colors text-sm"
+                  }
                 >
                   {link.label}
                 </a>
               </li>
             ))}
-            <li>
-              <a
-                href="#contact"
-                onClick={closeMenu}
-                className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
-              >
-                Say hello
-              </a>
-            </li>
           </ul>
 
           {/* Mobile toggle */}
@@ -159,28 +153,86 @@ export default function Nav() {
                 : { opacity: 0, y: -20 }
             }
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-bg md:hidden"
+            className="fixed inset-0 z-40 flex flex-col bg-bg md:hidden"
           >
-            <ul className="flex flex-col items-center gap-10">
-              {NAV_LINKS.map((link) => (
-                <li key={link.href}>
-                  <a
-                    href={link.href}
-                    onClick={handleNavClick}
-                    className="text-text text-4xl font-medium transition-colors hover:text-accent-lit"
+            <div className="flex flex-1 flex-col justify-center px-12 max-w-md mx-auto w-full">
+              {/* Nav items with staggered animation */}
+              <motion.nav
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: 0.05 } },
+                }}
+              >
+                {NAV_LINKS.map((link, i) => (
+                  <motion.div
+                    key={link.href}
+                    variants={{
+                      hidden: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -12 },
+                      visible: prefersReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 },
+                    }}
                   >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <a
-              href="#contact"
-              onClick={handleNavClick}
-              className="mt-14 border border-line rounded-sm px-5 py-2.5 font-mono text-lg text-text hover:text-white hover:border-accent-lit transition-colors"
+                    <a
+                      href={link.href}
+                      onClick={handleNavClick}
+                      className="flex items-center gap-4 py-5"
+                    >
+                      <span className="font-mono text-xs text-dim w-6">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-text text-4xl font-medium hover:text-accent-lit transition-colors">
+                        {link.label}
+                      </span>
+                    </a>
+                    {i < NAV_LINKS.length - 1 && (
+                      <div className="h-px bg-line w-full" />
+                    )}
+                  </motion.div>
+                ))}
+              </motion.nav>
+
+              {/* Stats */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.35 } },
+                }}
+                className="flex flex-col gap-2 mt-10"
+              >
+                {COPY.mobileMenuStats.map((stat) => (
+                  <motion.div
+                    key={stat}
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: { opacity: 1 },
+                    }}
+                    className="flex items-center gap-2 font-mono text-xs text-dim"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {stat}
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* CTA at bottom */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="px-12 pb-12 max-w-md mx-auto w-full"
             >
-              Say hello
-            </a>
+              <a
+                href="#contact"
+                onClick={handleNavClick}
+                className="block text-center border border-line rounded-sm px-5 py-3 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
+              >
+                let&apos;s talk &rarr;
+              </a>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -47,7 +47,7 @@ export default function FloatingCTA() {
           : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >
-      Say hello
+      let&apos;s talk
     </a>
   );
 }

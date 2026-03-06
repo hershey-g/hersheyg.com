@@ -35,7 +35,7 @@ export default function Services() {
   }, []);
 
   return (
-    <section id="services" className="py-24 sm:py-32">
+    <section id="services" className="py-16 sm:py-32">
       <div className="max-w-6xl mx-auto px-6">
         <RevealOnScroll>
           <SectionTag>{COPY.services.tag}</SectionTag>
@@ -45,7 +45,7 @@ export default function Services() {
         </RevealOnScroll>
 
         {/* Desktop grid */}
-        <div className="mt-12 hidden lg:grid grid-cols-3 bg-line gap-px rounded-md overflow-hidden">
+        <div className="mt-12 hidden lg:grid grid-cols-3 gap-6">
           {COPY.services.cards.map((card, index) => (
             <RevealOnScroll key={card.num} delay={index * 0.12}>
               <ServiceCard

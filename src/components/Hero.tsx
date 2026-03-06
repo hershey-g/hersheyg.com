@@ -12,7 +12,7 @@ export default function Hero() {
   const noMotion = !!prefersReducedMotion;
 
   return (
-    <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-28 pb-16 lg:pt-0 lg:pb-0 px-6">
+    <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-28 pb-10 lg:pt-0 lg:pb-0 px-6">
       <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-16 items-center">
         {/* Left column */}
         <div>
@@ -85,10 +85,10 @@ export default function Hero() {
 
             <a
               href="#proof"
-              className="group font-mono text-sm text-dim hover:text-text transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:text-center"
+              className="group font-mono text-sm text-body hover:text-white transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:text-center"
             >
               {COPY.hero.ghost}
-              <span className="ml-1" aria-hidden="true">↓</span>
+              <span className="ml-1 inline-block animate-[bounce-arrow_2s_ease-in-out_infinite]" aria-hidden="true">↓</span>
               <span className="absolute bottom-0 left-0 h-px w-0 bg-text transition-all group-hover:w-full" />
             </a>
           </motion.div>

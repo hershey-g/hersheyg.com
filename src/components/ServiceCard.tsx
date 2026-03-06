@@ -38,7 +38,7 @@ export default function ServiceCard({ num, title, body, tags }: ServiceCardProps
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative overflow-hidden bg-bg p-8 hover:bg-bg-2 transition-colors"
+      className="group relative overflow-hidden bg-bg p-8 border border-line rounded-md hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-[border-color,box-shadow] duration-300"
     >
       {/* Cursor glow */}
       {glowPos && (

@@ -432,10 +432,12 @@ export default function IntakeAgent() {
     scrollToBottom();
   }, [messages, phase, bootLines, scrollToBottom]);
 
-  const progress = Math.round((stepIndex / STEPS.length) * 100);
+  const isDone = phase.kind === "done" || phase.kind === "summary";
+  const displayStep = isDone ? STEPS.length : Math.min(stepIndex + 1, STEPS.length);
+  const progress = Math.round((displayStep / STEPS.length) * 100);
 
   return (
-    <section id="contact" className="py-24 sm:py-32" ref={sectionRef}>
+    <section id="contact" className="py-16 sm:py-32" ref={sectionRef}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="w-full max-w-[900px] mx-auto">
           <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
@@ -467,7 +469,7 @@ export default function IntakeAgent() {
                   />
                 </div>
                 <span className="font-mono text-[11px] text-slate-400">
-                  {stepIndex}/{STEPS.length}
+                  {displayStep}/{STEPS.length}
                 </span>
               </div>
             </div>

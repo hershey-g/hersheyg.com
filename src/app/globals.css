@@ -9,7 +9,7 @@
   --color-body: #b8c8da;
   --color-text: #CBD5E1;
   --color-white: #FFFFFF;
-  --color-dim: #8494a7;
+  --color-dim: #94a3b3;
   --color-line: rgba(148, 163, 184, 0.08);
 
   --font-sans: var(--font-inter);
@@ -129,6 +129,16 @@ body::after {
   }
   50% {
     opacity: 0;
+  }
+}
+
+/* -- Bounce arrow -- */
+@keyframes bounce-arrow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
   }
 }
 

@@ -36,6 +36,27 @@ export default function Nav() {
     };
   }, [menuOpen]);
 
+  // Close menu on Escape key
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [menuOpen]);
+
+  // Close menu if viewport crosses md breakpoint (e.g. device rotation)
+  useEffect(() => {
+    if (!menuOpen) return;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setMenuOpen(false);
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [menuOpen]);
+
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   const handleNavClick = useCallback(
@@ -55,66 +76,70 @@ export default function Nav() {
   );
 
   return (
-    <motion.nav
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-      className={`fixed top-0 left-0 w-full z-40 transition-colors duration-300 ${
-        scrolled
-          ? "bg-bg/80 backdrop-blur-md border-b border-line"
-          : "border-b border-transparent"
-      }`}
-    >
-      <div className="relative z-50 mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* Wordmark */}
-        <a href="#" className="flex items-center text-xs sm:text-sm">
-          <span className="flex items-center">
-            <span className="font-bold uppercase tracking-[0.14em] text-white">
-              HERSHEY
+    <>
+      <motion.nav
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+        className={`fixed top-0 left-0 w-full z-50 transition-colors duration-300 ${
+          menuOpen
+            ? "bg-bg border-b border-transparent"
+            : scrolled
+              ? "bg-bg/80 backdrop-blur-md border-b border-line"
+              : "border-b border-transparent"
+        }`}
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          {/* Wordmark */}
+          <a href="#" className="flex items-center text-xs sm:text-sm">
+            <span className="flex items-center">
+              <span className="font-bold uppercase tracking-[0.14em] text-white">
+                HERSHEY
+              </span>
+              <span className="font-light text-dim mx-1 sm:mx-1.5">/</span>
+              <span className="font-light uppercase tracking-[0.1em] text-text">
+                GOLDBERGER
+              </span>
             </span>
-            <span className="font-light text-dim mx-1 sm:mx-1.5">/</span>
-            <span className="font-light uppercase tracking-[0.1em] text-text">
-              GOLDBERGER
-            </span>
-          </span>
-        </a>
+          </a>
 
-        {/* Desktop links */}
-        <ul className="hidden md:flex items-center gap-8">
-          {NAV_LINKS.map((link) => (
-            <li key={link.href}>
+          {/* Desktop links */}
+          <ul className="hidden md:flex items-center gap-8">
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  className="text-dim hover:text-text transition-colors text-sm"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+            <li>
               <a
-                href={link.href}
-                className="text-dim hover:text-text transition-colors text-sm"
+                href="#contact"
+                onClick={closeMenu}
+                className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
               >
-                {link.label}
+                Say hello
               </a>
             </li>
-          ))}
-          <li>
-            <a
-              href="#contact"
-              onClick={closeMenu}
-              className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
-            >
-              Say hello
-            </a>
-          </li>
-        </ul>
+          </ul>
 
-        {/* Mobile toggle */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          className="flex md:hidden font-mono text-sm text-dim"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-        >
-          {menuOpen ? "close" : "menu"}
-        </button>
-      </div>
+          {/* Mobile toggle */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="flex md:hidden font-mono text-sm text-dim"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? "close" : "menu"}
+          </button>
+        </div>
+      </motion.nav>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — outside nav to avoid backdrop-filter containing block */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -134,7 +159,7 @@ export default function Nav() {
                 : { opacity: 0, y: -20 }
             }
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 top-0 z-30 flex flex-col items-center justify-center bg-bg md:hidden"
+            className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-bg md:hidden"
           >
             <ul className="flex flex-col items-center gap-10">
               {NAV_LINKS.map((link) => (
@@ -142,7 +167,7 @@ export default function Nav() {
                   <a
                     href={link.href}
                     onClick={handleNavClick}
-                    className="text-text text-3xl font-medium transition-colors hover:text-accent-lit"
+                    className="text-text text-4xl font-medium transition-colors hover:text-accent-lit"
                   >
                     {link.label}
                   </a>
@@ -151,14 +176,14 @@ export default function Nav() {
             </ul>
             <a
               href="#contact"
-              onClick={closeMenu}
-              className="mt-12 border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
+              onClick={handleNavClick}
+              className="mt-14 border border-line rounded-sm px-5 py-2.5 font-mono text-lg text-text hover:text-white hover:border-accent-lit transition-colors"
             >
               Say hello
             </a>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 }

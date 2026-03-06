@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useInView, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 
 const CHARS = "0123456789,+$#&!@%ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const FRAME_MS = 35;
@@ -18,11 +18,11 @@ interface ScrambleRevealProps {
   text: string;
   delay?: number;
   className?: string;
+  trigger?: boolean;
 }
 
-export default function ScrambleReveal({ text, delay = 0, className }: ScrambleRevealProps) {
+export default function ScrambleReveal({ text, delay = 0, className, trigger = true }: ScrambleRevealProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
   const prefersReducedMotion = useReducedMotion();
   const [display, setDisplay] = useState(() =>
     prefersReducedMotion ? text : scramble(text)
@@ -30,7 +30,7 @@ export default function ScrambleReveal({ text, delay = 0, className }: ScrambleR
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    if (!isInView || prefersReducedMotion || revealed) return;
+    if (!trigger || prefersReducedMotion || revealed) return;
 
     const timeout = setTimeout(() => {
       let frame = 0;
@@ -55,7 +55,7 @@ export default function ScrambleReveal({ text, delay = 0, className }: ScrambleR
     }, delay);
 
     return () => clearTimeout(timeout);
-  }, [isInView, prefersReducedMotion, text, delay, revealed]);
+  }, [trigger, prefersReducedMotion, text, delay, revealed]);
 
   return (
     <span ref={ref} className={className} aria-label={text}>

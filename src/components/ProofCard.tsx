@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useInView, useReducedMotion } from "framer-motion";
 import ScrambleReveal from "./ScrambleReveal";
 import { COPY } from "@/lib/constants";
 
@@ -14,6 +14,7 @@ interface ProofCardProps {
 export default function ProofCard({ card }: ProofCardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { once: true, margin: "-60px" });
   const prefersReducedMotion = useReducedMotion();
 
   const handleMouseMove = useCallback(
@@ -82,7 +83,7 @@ export default function ProofCard({ card }: ProofCardProps) {
           className="text-[clamp(2.25rem,4vw,3rem)] font-extrabold tracking-tighter"
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
-          <ScrambleReveal text={card.metric} delay={card.scrambleDelay} />
+          <ScrambleReveal text={card.metric} delay={card.scrambleDelay + 800} trigger={isInView} />
         </div>
 
         {/* Body - collapsible on mobile */}

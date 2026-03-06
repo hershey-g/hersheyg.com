@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useInView, useReducedMotion } from "framer-motion";
 import { STEPS, AGENT_RESPONSES, type AgentStep } from "./intake-agent-constants";
 
 // Types
@@ -13,11 +14,19 @@ interface Message {
 type Answers = Record<string, string>;
 
 type Phase =
+  | { kind: "boot" }
   | { kind: "typing" }
   | { kind: "options"; stepId: string; options: string[] }
   | { kind: "input"; stepId: string; inputType: "input" | "textarea"; placeholder: string }
   | { kind: "summary"; answers: Answers; ref: string }
   | { kind: "done" };
+
+const BOOT_LINES = [
+  "> initializing intake agent...",
+  "> loading project context...",
+  "> scanning availability...",
+  "> ready. starting session.",
+];
 
 // Helpers
 
@@ -208,13 +217,17 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
 
 export default function IntakeAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [phase, setPhase] = useState<Phase>({ kind: "typing" });
+  const [phase, setPhase] = useState<Phase>({ kind: "boot" });
+  const [bootLines, setBootLines] = useState<string[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [summaryRef, setSummaryRef] = useState("");
+  const sectionRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const hasRun = useRef(false);
   const timeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const prefersReducedMotion = useReducedMotion();
 
   const trackedTimeout = useCallback((fn: () => void, ms: number) => {
     const id = setTimeout(fn, ms);
@@ -377,28 +390,51 @@ export default function IntakeAgent() {
     }, 1200);
   }, [scrollToBottom, trackedTimeout]);
 
-  // Kick off agent on mount
+  // Kick off agent when section enters viewport
   useEffect(() => {
-    if (hasRun.current) return;
+    if (!isInView || hasRun.current) return;
     hasRun.current = true;
-    runFlow();
+
+    // Skip boot for reduced motion — go straight to chat flow
+    if (prefersReducedMotion) {
+      setPhase({ kind: "typing" });
+      runFlow();
+      return;
+    }
+
+    // Boot sequence: show CLI lines one by one
+    let i = 0;
+    const showNextLine = () => {
+      if (i < BOOT_LINES.length) {
+        setBootLines((prev) => [...prev, BOOT_LINES[i]]);
+        i++;
+        trackedTimeout(showNextLine, 800);
+      } else {
+        // Boot done — transition to chat flow
+        trackedTimeout(() => {
+          setPhase({ kind: "typing" });
+          runFlow();
+        }, 600);
+      }
+    };
+    trackedTimeout(showNextLine, 400);
 
     return () => {
       timeoutIds.current.forEach(clearTimeout);
       timeoutIds.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isInView]);
 
   // Auto-scroll on message/phase changes
   useEffect(() => {
     scrollToBottom();
-  }, [messages, phase, scrollToBottom]);
+  }, [messages, phase, bootLines, scrollToBottom]);
 
   const progress = Math.round((stepIndex / STEPS.length) * 100);
 
   return (
-    <section id="contact" className="py-24 sm:py-32">
+    <section id="contact" className="py-24 sm:py-32" ref={sectionRef}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="w-full max-w-[900px] mx-auto">
           <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
@@ -440,6 +476,17 @@ export default function IntakeAgent() {
               ref={chatRef}
               className="p-6 font-mono text-sm leading-relaxed min-h-[380px] max-h-[520px] overflow-y-auto scroll-smooth intake-scroll"
             >
+              {phase.kind === "boot" && (
+                <div className="space-y-2 intake-animate-in">
+                  {bootLines.map((line, i) => (
+                    <p key={i} className="text-[13px] text-slate-500 font-mono intake-animate-in">{line}</p>
+                  ))}
+                  {bootLines.length < BOOT_LINES.length && (
+                    <span className="inline-block w-2 h-4 bg-slate-500 animate-pulse" />
+                  )}
+                </div>
+              )}
+
               {messages.map((msg, i) =>
                 msg.from === "agent" ? (
                   <AgentMessage key={i} text={msg.text} />

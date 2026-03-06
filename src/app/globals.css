@@ -5,11 +5,11 @@
   --color-bg: #0D1B2A;
   --color-bg-2: #0f2035;
   --color-accent: #1E3A5F;
-  --color-accent-lit: #3b7cc0;
-  --color-body: #a8b8cc;
+  --color-accent-lit: #5b9bd5;
+  --color-body: #b8c8da;
   --color-text: #CBD5E1;
   --color-white: #FFFFFF;
-  --color-dim: #64748b;
+  --color-dim: #8494a7;
   --color-line: rgba(148, 163, 184, 0.08);
 
   --font-sans: var(--font-inter);

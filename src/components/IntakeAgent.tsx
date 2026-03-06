@@ -140,7 +140,7 @@ function TextInput({
   };
 
   const sharedClasses =
-    "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-slate-700 rounded-lg bg-black/25 text-slate-200 outline-none focus:border-sky-400 transition-colors placeholder:text-slate-600";
+    "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-slate-700 rounded-lg bg-black/25 text-slate-200 outline-none focus:border-sky-400 transition-colors placeholder:text-slate-500";
 
   return (
     <div className="flex gap-2 ml-[38px] mt-3 intake-animate-in">
@@ -203,7 +203,7 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
             <div key={i} className="col-span-2 h-px bg-slate-700 my-1" />
           ) : (
             <div key={i} className="contents">
-              <span className="text-slate-500">{row[0]}</span>
+              <span className="text-slate-400">{row[0]}</span>
               <span className="text-slate-200">{row[1]}</span>
             </div>
           )
@@ -458,7 +458,7 @@ export default function IntakeAgent() {
               <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
               <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-              <span className="font-mono text-xs text-slate-500 ml-2 flex-1">~/intake-agent</span>
+              <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
               <div className="flex items-center gap-2">
                 <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
                   <div
@@ -466,7 +466,7 @@ export default function IntakeAgent() {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <span className="font-mono text-[11px] text-slate-500">
+                <span className="font-mono text-[11px] text-slate-400">
                   {stepIndex}/{STEPS.length}
                 </span>
               </div>
@@ -480,7 +480,7 @@ export default function IntakeAgent() {
               {phase.kind === "boot" && (
                 <div className="space-y-2 intake-animate-in">
                   {bootLines.map((line, i) => (
-                    <p key={i} className="text-[13px] text-slate-500 font-mono intake-animate-in">{line}</p>
+                    <p key={i} className="text-[13px] text-slate-400 font-mono intake-animate-in">{line}</p>
                   ))}
                   {bootLines.length < BOOT_LINES.length && (
                     <span className="inline-block w-2 h-4 bg-slate-500 animate-pulse" />
@@ -518,13 +518,13 @@ export default function IntakeAgent() {
 
           {/* Footer */}
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2 font-mono text-[13px] text-slate-500">
+            <div className="flex items-center gap-2 font-mono text-[13px] text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Currently accepting new projects.
             </div>
             <a
               href="mailto:hello@hersheyg.com?subject=Project%20Inquiry"
-              className="font-mono text-[13px] text-slate-500 hover:text-sky-400 transition-colors"
+              className="font-mono text-[13px] text-slate-400 hover:text-sky-400 transition-colors"
             >
               or just email hello@hersheyg.com →
             </a>

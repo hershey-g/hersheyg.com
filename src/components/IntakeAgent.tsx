@@ -366,6 +366,7 @@ export default function IntakeAgent() {
               text: "Hmm, something went sideways sending that. No worries though \u2014 just email hello@hersheyg.com with what you told me and Hershey will pick it up.",
             },
           ]);
+          setSummaryRef("");
           setPhase({ kind: "done" });
           scrollToBottom();
           resolve();

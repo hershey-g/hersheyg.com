@@ -65,7 +65,7 @@ export default function Nav() {
           : "border-b border-transparent"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div className="relative z-50 mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Wordmark */}
         <a href="#" className="flex items-center text-xs sm:text-sm">
           <span className="flex items-center">

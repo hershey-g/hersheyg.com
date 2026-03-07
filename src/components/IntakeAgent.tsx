@@ -247,11 +247,9 @@ export default function IntakeAgent() {
         scrollToBottom();
         await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.messageReveal));
       } else {
-        // Show typing indicator
         setPhase({ kind: "typing" });
         scrollToBottom();
         await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.agentTypingShow));
-        // Show agent message
         setDemoMessages((prev) => [...prev, msg]);
         setPhase({ kind: "demo" });
         scrollToBottom();
@@ -259,19 +257,8 @@ export default function IntakeAgent() {
       }
     }
 
-    // Pause after script completes
     await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.pauseAfterScript));
-
-    // Clear demo and transition
     setDemoMessages([]);
-    setPhase({ kind: "typing" });
-    scrollToBottom();
-
-    // Bridge message: "That was a real project. Yours could be next."
-    await new Promise<void>((r) => trackedTimeout(r, 800));
-    setMessages((prev) => [...prev, { from: "agent", text: "That was a real project. Yours could be next." }]);
-    scrollToBottom();
-    await new Promise<void>((r) => trackedTimeout(r, 1200));
   }, [getNextScript, scrollToBottom, trackedTimeout]);
 
   // Resolver ref for async user input
@@ -429,16 +416,45 @@ export default function IntakeAgent() {
     if (!isInView || hasRun.current) return;
     hasRun.current = true;
 
-    // Skip demo for reduced motion — go straight to chat flow
+    // Skip demo choice for reduced motion — go straight to intake
     if (prefersReducedMotion) {
       setPhase({ kind: "typing" });
       runFlow();
       return;
     }
 
-    // Play conversation demo, then start intake flow
     (async () => {
-      await playDemo();
+      // Show greeting with choice
+      setPhase({ kind: "typing" });
+      scrollToBottom();
+      await new Promise<void>((r) => trackedTimeout(r, 800));
+      setMessages([{
+        from: "agent",
+        text: "Hey — I'm the intake agent. I'll ask a few quick questions so Hershey knows what you need.\n\nWant to see a recent project conversation first?",
+      }]);
+      scrollToBottom();
+
+      // Wait for user choice
+      const choice = await new Promise<string>((resolve) => {
+        setPhase({
+          kind: "options",
+          stepId: "demo-choice",
+          options: ["Show me an example", "Let's get started"],
+        });
+        scrollToBottom();
+        resolverRef.current = resolve;
+      });
+
+      // Add user response
+      setMessages((prev) => [...prev, { from: "user", text: choice }]);
+      scrollToBottom();
+
+      if (choice === "Show me an example") {
+        await playDemo();
+      }
+
+      // Clear pre-step messages for clean intake start
+      setMessages([]);
       runFlow();
     })();
 
@@ -459,7 +475,7 @@ export default function IntakeAgent() {
   const progress = Math.round((displayStep / STEPS.length) * 100);
 
   return (
-    <section id="contact" className="py-16 sm:py-32" ref={sectionRef}>
+    <section className="py-16 sm:py-32" ref={sectionRef}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="w-full max-w-[900px] mx-auto">
           <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
@@ -475,6 +491,7 @@ export default function IntakeAgent() {
             you need built.
           </p>
 
+          <div id="contact" className="scroll-mt-20" />
           {/* Terminal */}
           <div className="bg-[#162232] border border-[#1e3348] rounded-[14px] overflow-hidden mb-6">
             {/* Header */}
@@ -483,7 +500,7 @@ export default function IntakeAgent() {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
               <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
               <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
-              {phase.kind !== "demo" && (
+              {stepIndex > 0 && phase.kind !== "demo" && (
                 <div className="flex items-center gap-2">
                   <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
                     <div

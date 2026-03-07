@@ -70,6 +70,9 @@ export const COPY = {
     email: 'hello@hersheyg.com',
     aside: 'Remote-first.\nBest fit: teams shipping production AI.',
   },
+  social: {
+    linkedin: 'https://www.linkedin.com/in/hersheyg',
+  },
   footer: {
     left: '\u00a9 YEAR Hershey Goldberger',
     right: 'Built by hand. Shipped to production.',

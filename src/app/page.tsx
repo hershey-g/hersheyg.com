@@ -18,7 +18,7 @@ export default function Home() {
       <ScrollProgress />
       <Nav />
 
-      <main className="relative z-10">
+      <main className="relative z-10 pb-20 md:pb-0">
         <Hero />
         <AnimatedHR />
         <Services />

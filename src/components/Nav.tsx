@@ -105,18 +105,24 @@ export default function Nav() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="md:hidden overflow-hidden border-t border-line bg-bg/95 backdrop-blur-md"
+            className="md:hidden overflow-hidden border-t border-line bg-[#1B2B3A]/98 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
           >
             <ul className="flex flex-col gap-1 px-6 py-4">
-              {NAV_LINKS.map((link) => (
-                <li key={link.href}>
+              {NAV_LINKS.map((link, index) => (
+                <motion.li
+                  key={link.href}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.2, ease: "easeOut", delay: index * 0.05 }}
+                >
                   <button
                     onClick={() => handleMobileLink(link.href)}
-                    className="w-full text-left py-2.5 text-sm text-dim hover:text-white transition-colors"
+                    className="w-full text-left py-3.5 text-base text-dim hover:text-white transition-colors"
                   >
                     {link.label}
                   </button>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </motion.div>

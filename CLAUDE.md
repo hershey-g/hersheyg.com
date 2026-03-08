@@ -9,9 +9,9 @@ npm run dev      # Start dev server (Next.js)
 npm run build    # Production build
 npm run start    # Serve production build
 npx tsc --noEmit # Type-check without emitting
+npm test         # Run Playwright e2e tests (desktop + mobile)
+npm run test:ui  # Playwright interactive UI mode
 ```
-
-No linter or test runner is configured.
 
 ## Architecture
 

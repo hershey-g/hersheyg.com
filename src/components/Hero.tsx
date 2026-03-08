@@ -19,12 +19,12 @@ export default function Hero() {
 
   return (
     <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-24 pb-10 lg:pt-0 lg:pb-0 px-6">
-      <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-16 items-center">
+      <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-16 items-center">
         {/* Left column */}
         <div>
           {/* Eyebrow */}
           <motion.div
-            className="flex items-center gap-3 mb-6"
+            className="flex items-center gap-3 mb-5 sm:mb-6"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -41,7 +41,7 @@ export default function Hero() {
 
           {/* Headline */}
           <motion.h1
-            className="text-[clamp(2.75rem,5.5vw,4.25rem)] max-lg:text-[clamp(2.75rem,10vw,4.25rem)] font-extrabold text-white tracking-tight leading-[1.05]"
+            className="text-[clamp(2.25rem,8vw,4.25rem)] lg:text-[clamp(2.75rem,5.5vw,4.25rem)] font-extrabold text-white tracking-tight leading-[1.08]"
             style={{ letterSpacing: '-0.035em' }}
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -52,7 +52,7 @@ export default function Hero() {
 
           {/* Sub-copy */}
           <motion.p
-            className="mt-5 text-lg text-body leading-relaxed max-w-[520px]"
+            className="mt-4 sm:mt-5 text-base sm:text-lg text-body leading-relaxed max-w-[520px]"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -60,9 +60,9 @@ export default function Hero() {
             {variant.sub}
           </motion.p>
 
-          {/* CTA row — now before TerminalCompact on mobile */}
+          {/* CTA row */}
           <motion.div
-            className="flex items-center gap-6 mt-7 max-lg:flex-col max-lg:items-stretch"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 mt-6 sm:mt-7"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -70,7 +70,7 @@ export default function Hero() {
             <MagneticButton>
               <a
                 href="#contact"
-                className="group inline-flex items-center gap-2 font-mono text-base tracking-wide text-white bg-accent rounded-sm px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:w-full max-lg:justify-center max-lg:py-4"
+                className="group inline-flex items-center justify-center gap-2 font-mono text-sm sm:text-base tracking-wide text-white bg-accent rounded-sm px-6 sm:px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit"
               >
                 {COPY.hero.cta}
                 <span className="inline-block transition-transform group-hover:translate-x-1" aria-hidden="true">
@@ -81,7 +81,7 @@ export default function Hero() {
 
             <a
               href="#proof"
-              className="group font-mono text-sm text-body hover:text-white transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit max-lg:text-center"
+              className="group font-mono text-sm text-body hover:text-white transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit text-center sm:text-left"
             >
               {COPY.hero.ghost}
               <span className="ml-1 inline-block animate-[bounce-arrow_2s_ease-in-out_infinite]" aria-hidden="true">↓</span>
@@ -89,9 +89,9 @@ export default function Hero() {
             </a>
           </motion.div>
 
-          {/* Terminal compact - mobile only, now below CTAs */}
+          {/* Terminal compact - mobile only, below CTAs */}
           <motion.div
-            className="mt-6 block lg:hidden"
+            className="mt-5 block lg:hidden"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}

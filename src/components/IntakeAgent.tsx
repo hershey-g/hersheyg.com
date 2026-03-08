@@ -57,7 +57,7 @@ function AgentMessage({ text, isTyping }: { text?: string; isTyping?: boolean })
       <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
         <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
       </div>
-      <div className="bg-black/20 border border-slate-700 rounded-xl px-4 py-3 max-w-[85%]">
+      <div className="bg-black/20 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
         {isTyping ? (
           <TypingDots />
         ) : (
@@ -73,7 +73,7 @@ function AgentMessage({ text, isTyping }: { text?: string; isTyping?: boolean })
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-sky-400/10 border border-sky-400/15 rounded-xl px-4 py-3 max-w-[85%]">
+      <div className="bg-sky-400/10 border border-sky-400/15 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-sky-400 font-mono">{text}</p>
       </div>
     </div>
@@ -88,14 +88,15 @@ function OptionButtons({
   onSelect: (opt: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2 ml-0 md:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex flex-wrap gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
       {options.map((opt) => (
         <button
           key={opt}
           onClick={() => onSelect(opt)}
-          className="font-mono text-xs px-4 py-2 border border-slate-700 rounded-lg
+          className="font-mono text-xs px-3.5 py-2 border border-slate-700 rounded-lg
                      text-slate-400 hover:border-sky-400 hover:text-sky-400
-                     hover:bg-sky-400/10 hover:-translate-y-px transition-all duration-200"
+                     hover:bg-sky-400/10 hover:-translate-y-px transition-all duration-200
+                     active:scale-[0.97]"
         >
           {opt}
         </button>
@@ -117,7 +118,9 @@ function TextInput({
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    // Small delay to let modal animation finish before focusing
+    const timer = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = () => {
@@ -137,7 +140,7 @@ function TextInput({
     "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-slate-700 rounded-lg bg-black/25 text-slate-200 outline-none focus:border-sky-400 transition-colors placeholder:text-slate-500";
 
   return (
-    <div className="flex gap-2 ml-0 md:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
       {inputType === "textarea" ? (
         <textarea
           ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -184,21 +187,21 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
   ];
 
   return (
-    <div className="bg-black/25 border border-slate-700 rounded-xl p-4 px-5 ml-0 md:ml-[38px] mt-3 intake-animate-in">
+    <div className="bg-black/25 border border-slate-700 rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
       <div className="flex items-center gap-1.5 text-xs text-emerald-400 mb-3 font-mono">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <polyline points="20 6 9 17 4 12" />
         </svg>
         Brief sent · ref {refId}
       </div>
-      <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-2 text-xs font-mono">
+      <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr] gap-x-3 sm:gap-x-4 gap-y-2 text-xs font-mono">
         {rows.map((row, i) =>
           row === "divider" ? (
             <div key={i} className="col-span-2 h-px bg-slate-700 my-1" />
           ) : (
             <div key={i} className="contents">
               <span className="text-slate-400">{row[0]}</span>
-              <span className="text-slate-200">{row[1]}</span>
+              <span className="text-slate-200 break-words">{row[1]}</span>
             </div>
           )
         )}
@@ -236,14 +239,25 @@ function IntakeChatContent({
   return (
     <div className={`bg-[#162232] ${isModal ? "flex flex-col h-full" : "border border-[#1e3348] rounded-[14px] overflow-hidden"}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#1e3348] bg-black/15 flex-shrink-0">
-        <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-        <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-        <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[#1e3348] bg-black/15 flex-shrink-0">
+        {!isModal && (
+          <>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+          </>
+        )}
+        {isModal && (
+          <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
+          </div>
+        )}
+        <span className="font-mono text-xs text-slate-400 ml-1 sm:ml-2 flex-1">
+          {isModal ? "Intake Agent" : "~/intake-agent"}
+        </span>
         {stepIndex > 0 && (
           <div className="flex items-center gap-2">
-            <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
+            <div className="w-[80px] sm:w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
               <div
                 className="h-full bg-sky-400 rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
@@ -257,10 +271,13 @@ function IntakeChatContent({
         {isModal && onClose && (
           <button
             onClick={onClose}
-            className="ml-2 text-slate-400 hover:text-white transition-colors text-lg leading-none p-1"
+            className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close intake form"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         )}
       </div>
@@ -268,7 +285,7 @@ function IntakeChatContent({
       {/* Chat body */}
       <div
         ref={chatRef}
-        className={`p-6 font-mono text-sm leading-relaxed overflow-y-auto scroll-smooth intake-scroll ${
+        className={`p-4 sm:p-6 font-mono text-sm leading-relaxed overflow-y-auto scroll-smooth intake-scroll ${
           isModal ? "flex-1" : "min-h-[380px] max-h-[520px]"
         }`}
       >
@@ -353,14 +370,13 @@ export default function IntakeAgent() {
     INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
   );
 
-  // Run the full agent flow — skip the demo gate, jump straight into intake
+  // Run the full agent flow
   const runFlow = useCallback(async () => {
     const currentAnswers: Answers = {};
 
     for (let i = 0; i < STEPS.length; i++) {
       const step = STEPS[i];
 
-      // Build the agent message
       let msg = step.agentMsg;
       if (step.id === "type") {
         msg = greeting;
@@ -368,7 +384,6 @@ export default function IntakeAgent() {
         msg = `Last one, ${currentAnswers.name || "friend"}. Where should Hershey actually reach you?`;
       }
 
-      // Show typing, then message
       await new Promise<void>((resolve) => {
         setPhase({ kind: "typing" });
         scrollToBottom();
@@ -383,7 +398,6 @@ export default function IntakeAgent() {
         }, delay);
       });
 
-      // Wait for user response
       const userAnswer = await new Promise<string>((resolve) => {
         if (step.options) {
           setPhase({ kind: "options", stepId: step.id, options: step.options });
@@ -396,20 +410,14 @@ export default function IntakeAgent() {
           });
         }
         scrollToBottom();
-
-        // Store the resolver so handlers can call it
         resolverRef.current = resolve;
       });
 
-      // Record the answer
       currentAnswers[step.id] = userAnswer;
       setAnswers({ ...currentAnswers });
-
-      // Add user message
       setMessages((prev) => [...prev, { from: "user", text: userAnswer }]);
       scrollToBottom();
 
-      // Agent contextual response (if exists for this step)
       const contextReply = AGENT_RESPONSES[step.id]?.[userAnswer];
       if (contextReply) {
         await new Promise<void>((resolve) => {
@@ -426,7 +434,6 @@ export default function IntakeAgent() {
       }
     }
 
-    // Final summary
     setStepIndex(STEPS.length);
 
     await new Promise<void>((resolve) => {
@@ -445,7 +452,6 @@ export default function IntakeAgent() {
     setPhase({ kind: "summary", answers: currentAnswers, ref });
     scrollToBottom();
 
-    // POST to API
     try {
       const res = await fetch("/api/intake", {
         method: "POST",
@@ -457,7 +463,6 @@ export default function IntakeAgent() {
         throw new Error("Failed to send");
       }
     } catch {
-      // Show error as agent message
       await new Promise<void>((resolve) => {
         trackedTimeout(() => {
           setMessages((prev) => [
@@ -476,7 +481,6 @@ export default function IntakeAgent() {
       return;
     }
 
-    // Closing message after successful submission
     trackedTimeout(() => {
       const contact = currentAnswers.contact || "your inbox";
       const closingMsg = `You'll get a confirmation at ${contact} shortly. Hershey will personally follow up within a few hours. Probably sooner. The man lives in his terminal.`;
@@ -492,7 +496,7 @@ export default function IntakeAgent() {
     }, 1200);
   }, [scrollToBottom, trackedTimeout, greeting]);
 
-  // Start flow when the section enters viewport (desktop) — skip demo, go straight to intake
+  // Start flow when the section enters viewport (desktop)
   useEffect(() => {
     if (!isInView || hasRun.current) return;
     hasRun.current = true;
@@ -505,7 +509,7 @@ export default function IntakeAgent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInView]);
 
-  // Listen for mobile modal open requests (from FloatingCTA, Nav, Hero CTA)
+  // Listen for mobile modal open requests
   useEffect(() => {
     const handler = () => {
       setModalOpen(true);
@@ -545,19 +549,19 @@ export default function IntakeAgent() {
 
   return (
     <>
-      {/* Embedded section — visible on desktop, hidden content on mobile (section header still shows) */}
+      {/* Embedded section */}
       <section className="py-16 sm:py-32 sm:pb-16" ref={sectionRef}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="w-full max-w-[900px] mx-auto">
-            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
+            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-5 sm:mb-6">
               03 // CONTACT
             </p>
 
-            <h2 className="text-[clamp(32px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4">
+            <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-3 sm:mb-4">
               {COPY.contact.heading}
             </h2>
 
-            <p className="text-[17px] text-slate-400 leading-relaxed max-w-[540px] mb-10">
+            <p className="text-base sm:text-[17px] text-slate-400 leading-relaxed max-w-[540px] mb-8 sm:mb-10">
               {COPY.contact.sub}
             </p>
 
@@ -586,7 +590,7 @@ export default function IntakeAgent() {
                     runFlow();
                   }
                 }}
-                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-6 text-left group hover:border-sky-400/30 transition-colors"
+                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-5 text-left group hover:border-sky-400/30 transition-colors active:scale-[0.99] transition-transform"
               >
                 <div className="flex items-center gap-2.5 mb-3">
                   <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
@@ -604,7 +608,7 @@ export default function IntakeAgent() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 font-mono text-[13px] text-slate-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Typical reply time: under 24h
@@ -623,28 +627,40 @@ export default function IntakeAgent() {
       {/* Fullscreen mobile modal */}
       <AnimatePresence>
         {modalOpen && (
-          <motion.div
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
-            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
-            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="fixed inset-0 z-50 md:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Project intake form"
-          >
-            <IntakeChatContent
-              chatRef={chatRef}
-              messages={messages}
-              phase={phase}
-              stepIndex={stepIndex}
-              answers={answers}
-              summaryRef={summaryRef}
-              handleUserResponse={handleUserResponse}
-              onClose={() => setModalOpen(false)}
-              isModal
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[49] bg-black/60 md:hidden"
+              onClick={() => setModalOpen(false)}
             />
-          </motion.div>
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="fixed inset-0 z-50 md:hidden"
+              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Project intake form"
+            >
+              <IntakeChatContent
+                chatRef={chatRef}
+                messages={messages}
+                phase={phase}
+                stepIndex={stepIndex}
+                answers={answers}
+                summaryRef={summaryRef}
+                handleUserResponse={handleUserResponse}
+                onClose={() => setModalOpen(false)}
+                isModal
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

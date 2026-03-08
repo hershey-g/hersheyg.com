@@ -38,7 +38,7 @@ export default function ServiceCard({ num, title, body, tags }: ServiceCardProps
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative overflow-hidden bg-bg p-6 lg:p-8 border border-line rounded-md hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-[border-color,box-shadow] duration-300 h-full"
+      className="group relative overflow-hidden bg-bg p-5 sm:p-6 lg:p-8 border border-line rounded-md hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-[border-color,box-shadow] duration-300 h-full"
     >
       {/* Cursor glow */}
       {glowPos && (
@@ -51,10 +51,10 @@ export default function ServiceCard({ num, title, body, tags }: ServiceCardProps
       )}
 
       <div className="relative flex flex-col h-full">
-        <span className="font-mono text-xs text-dim mb-6 block">{num}</span>
-        <h3 className="font-semibold text-white text-lg mb-3">{title}</h3>
-        <p className="text-base text-body leading-relaxed">{body}</p>
-        <div className="flex flex-wrap gap-1.5 mt-auto pt-5">
+        <span className="font-mono text-xs text-dim mb-3 sm:mb-6 block">{num}</span>
+        <h3 className="font-semibold text-white text-md sm:text-lg mb-2 sm:mb-3">{title}</h3>
+        <p className="text-sm sm:text-base text-body leading-relaxed">{body}</p>
+        <div className="flex flex-wrap gap-1.5 mt-auto pt-4 sm:pt-5">
           {tags.map((tag) => (
             <span
               key={tag}

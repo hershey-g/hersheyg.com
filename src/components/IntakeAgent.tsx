@@ -650,7 +650,7 @@ export default function IntakeAgent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[61] bg-black/60 md:hidden"
+              className="fixed inset-0 z-[61] bg-black/90 md:hidden"
               onClick={() => setModalOpen(false)}
             />
             <motion.div

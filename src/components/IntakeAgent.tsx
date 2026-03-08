@@ -499,9 +499,12 @@ export default function IntakeAgent() {
     }, 1200);
   }, [scrollToBottom, trackedTimeout, greeting]);
 
-  // Start flow when the section enters viewport (desktop)
+  // Start flow when the section enters viewport (desktop only)
   useEffect(() => {
     if (!isInView || hasRun.current) return;
+    // On mobile the terminal is hidden; don't auto-start until user opens modal
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    if (!isDesktop) return;
     hasRun.current = true;
     runFlow();
 
@@ -525,14 +528,24 @@ export default function IntakeAgent() {
     return () => window.removeEventListener("open-intake-modal", handler);
   }, [runFlow]);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll when modal is open (iOS Safari needs position:fixed)
   useEffect(() => {
     if (modalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      return () => {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.overflow = "";
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => { document.body.style.overflow = ""; };
   }, [modalOpen]);
 
   // Close modal on Escape
@@ -593,7 +606,7 @@ export default function IntakeAgent() {
                     runFlow();
                   }
                 }}
-                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-5 text-left group hover:border-sky-400/30 transition-colors active:scale-[0.99] transition-transform"
+                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-5 text-left group hover:border-sky-400/30 active:scale-[0.99] transition-[border-color,transform] duration-200"
               >
                 <div className="flex items-center gap-2.5 mb-3">
                   <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
@@ -637,7 +650,7 @@ export default function IntakeAgent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[49] bg-black/60 md:hidden"
+              className="fixed inset-0 z-[61] bg-black/60 md:hidden"
               onClick={() => setModalOpen(false)}
             />
             <motion.div
@@ -645,7 +658,7 @@ export default function IntakeAgent() {
               animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="fixed inset-0 z-50 md:hidden"
+              className="fixed inset-0 z-[62] md:hidden"
               style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
               role="dialog"
               aria-modal="true"

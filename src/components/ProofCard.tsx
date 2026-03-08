@@ -53,7 +53,7 @@ export default function ProofCard({ card }: ProofCardProps) {
         aria-hidden="true"
       />
       {/* Header strip */}
-      <div className="flex items-center gap-2 px-9 py-3 bg-[rgba(59,124,192,0.08)]">
+      <div className="flex items-center gap-2 px-6 md:px-9 py-3 bg-[rgba(59,124,192,0.08)]">
         <span
           className={`inline-block w-1.5 h-1.5 rounded-full bg-accent-lit ${
             card.statusDot === "pulse" ? "animate-pulse" : ""
@@ -65,7 +65,7 @@ export default function ProofCard({ card }: ProofCardProps) {
         </span>
       </div>
 
-      <div className="px-9 py-8">
+      <div className="px-6 py-6 md:px-9 md:py-8">
         {/* Label */}
         <span className="font-mono uppercase text-xs tracking-wide text-accent-lit block mb-5">
           {card.label}

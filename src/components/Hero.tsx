@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { COPY } from "@/lib/constants";
+import { COPY, HERO_VARIANTS } from "@/lib/constants";
 import TextScramble from "@/components/TextScramble";
 import Terminal from "@/components/Terminal";
 import TerminalCompact from "@/components/TerminalCompact";
@@ -11,8 +12,13 @@ export default function Hero() {
   const prefersReducedMotion = useReducedMotion();
   const noMotion = !!prefersReducedMotion;
 
+  // Pick a random hero variant once on mount (lazy initializer — no flicker)
+  const [variant] = useState(() =>
+    HERO_VARIANTS[Math.floor(Math.random() * HERO_VARIANTS.length)]
+  );
+
   return (
-    <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-28 pb-10 lg:pt-0 lg:pb-0 px-6">
+    <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-24 pb-10 lg:pt-0 lg:pb-0 px-6">
       <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-16 items-center">
         {/* Left column */}
         <div>
@@ -41,32 +47,22 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <TextScramble text={COPY.hero.headline} />
+            <TextScramble text={variant.headline} />
           </motion.h1>
 
           {/* Sub-copy */}
           <motion.p
-            className="mt-6 text-lg text-body leading-relaxed max-w-[520px]"
+            className="mt-5 text-lg text-body leading-relaxed max-w-[520px]"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {COPY.hero.sub}
+            {variant.sub}
           </motion.p>
 
-          {/* Terminal compact - mobile only */}
+          {/* CTA row — now before TerminalCompact on mobile */}
           <motion.div
-            className="mt-6 block lg:hidden"
-            initial={noMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <TerminalCompact />
-          </motion.div>
-
-          {/* CTA row */}
-          <motion.div
-            className="flex items-center gap-6 mt-8 max-lg:flex-col max-lg:items-stretch"
+            className="flex items-center gap-6 mt-7 max-lg:flex-col max-lg:items-stretch"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -91,6 +87,16 @@ export default function Hero() {
               <span className="ml-1 inline-block animate-[bounce-arrow_2s_ease-in-out_infinite]" aria-hidden="true">↓</span>
               <span className="absolute bottom-0 left-0 h-px w-0 bg-text transition-all group-hover:w-full" />
             </a>
+          </motion.div>
+
+          {/* Terminal compact - mobile only, now below CTAs */}
+          <motion.div
+            className="mt-6 block lg:hidden"
+            initial={noMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalCompact />
           </motion.div>
 
         </div>

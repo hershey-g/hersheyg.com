@@ -2,12 +2,11 @@ import { COPY } from '@/lib/constants';
 
 export default function Footer() {
   return (
-    <footer className="py-8 border-t border-line">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <p className="font-mono text-xs text-dim">
-            &copy; {new Date().getFullYear()} Hershey Goldberger
-          </p>
+    <footer className="py-6 border-t border-line">
+      <div className="max-w-6xl mx-auto px-6 flex items-center justify-center gap-4 font-mono text-[11px] text-dim">
+        {/* Copyright + LinkedIn */}
+        <div className="flex items-center gap-2.5">
+          <span>&copy; {new Date().getFullYear()} Hershey Goldberger</span>
           <a
             href={COPY.social.linkedin}
             target="_blank"
@@ -17,8 +16,8 @@ export default function Footer() {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
@@ -26,9 +25,11 @@ export default function Footer() {
             </svg>
           </a>
         </div>
-        <p className="font-mono text-xs text-dim">
-          Built by hand. Shipped to production.
-        </p>
+
+        <span className="text-dim/30" aria-hidden="true">·</span>
+
+        {/* Agent credit */}
+        <span className="text-dim/50">designed &amp; shipped by an AI agent</span>
       </div>
     </footer>
   );

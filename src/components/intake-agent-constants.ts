@@ -45,11 +45,20 @@ export const AGENT_RESPONSES: AgentResponses = {
   },
 };
 
+// Rotating greetings — a random one is picked per session.
+// Each ends with the same question so the options still make sense.
+export const INTAKE_GREETINGS: string[] = [
+  "Hey. I'm the intake agent. Think of me as the bouncer, except I let everyone in and just ask a few questions first.\n\nWhat are you looking to build?",
+  "Hey. I'm the intake agent. I ask the questions so Hershey doesn't have to send you a Google Form. You're welcome.\n\nWhat are you looking to build?",
+  "Hey there. Before you get Hershey, you get me. I keep it short — six questions, then I hand you off.\n\nWhat are you looking to build?",
+  "Welcome. I'm the intake agent — basically a contact form that talks back.\n\nWhat are you looking to build?",
+  "Hey. I'm the first line of defense between you and Hershey's calendar. Don't worry, I'm friendly.\n\nWhat are you looking to build?",
+];
+
 export const STEPS: AgentStep[] = [
   {
     id: "type",
-    agentMsg:
-      "Hey. I'm the intake agent. Think of me as the bouncer, except I let everyone in and just ask a few questions first.\n\nWhat are you looking to build?",
+    agentMsg: null, // dynamically set from INTAKE_GREETINGS at runtime
     options: ["AI agent", "Autonomous workflow", "Full-stack product", "Not sure yet"],
   },
   {

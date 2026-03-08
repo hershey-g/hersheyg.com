@@ -11,17 +11,7 @@ export default function FloatingCTA() {
     if (!hero || !contact) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        const heroEntry = entries.find((e) => e.target === hero);
-        const contactEntry = entries.find((e) => e.target === contact);
-
-        if (heroEntry) {
-          setVisible((prev) => (heroEntry.isIntersecting ? false : prev));
-        }
-        if (contactEntry) {
-          setVisible((prev) => (contactEntry.isIntersecting ? false : prev));
-        }
-
+      () => {
         // Show when hero is out and contact is out
         const heroRect = hero.getBoundingClientRect();
         const contactRect = contact.getBoundingClientRect();
@@ -38,9 +28,15 @@ export default function FloatingCTA() {
     return () => observer.disconnect();
   }, []);
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // On mobile, open the fullscreen intake modal
+    window.dispatchEvent(new CustomEvent("open-intake-modal"));
+  };
+
   return (
-    <a
-      href="#contact"
+    <button
+      onClick={handleClick}
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden font-mono text-sm text-white bg-accent border border-accent-lit/30 rounded-full px-6 py-3 shadow-lg transition-all duration-300 ${
         visible
           ? "opacity-100 translate-y-0"
@@ -48,6 +44,6 @@ export default function FloatingCTA() {
       }`}
     >
       let&apos;s talk
-    </a>
+    </button>
   );
 }

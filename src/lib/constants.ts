@@ -1,3 +1,35 @@
+export interface HeroVariant {
+  headline: string;
+  sub: string;
+}
+
+export const HERO_VARIANTS: HeroVariant[] = [
+  {
+    headline: 'Your AI\nshouldn\'t need\na babysitter.',
+    sub: 'I architect autonomous systems that replace workflows, not assist them. When something breaks, I fix it at the source. One engineer. Full ownership. No layers.',
+  },
+  {
+    headline: 'Ship the agent.\nNot the org chart.',
+    sub: 'You don\'t need a team of twelve to build production AI. You need one engineer who owns the system end to end. That\'s the offer.',
+  },
+  {
+    headline: 'Workflows that\nrun themselves.\nSeriously.',
+    sub: 'I build AI that handles the job — not just the easy parts. Agents, automations, full-stack products. Architect to deploy, one person.',
+  },
+  {
+    headline: 'Most AI demos\nbreak in prod.\nMine don\'t.',
+    sub: 'I build for the 3am edge case, not the investor demo. Production-grade agents and systems. One engineer. No hand-off. No surprises.',
+  },
+  {
+    headline: 'One engineer.\nFull stack.\nNo meetings.',
+    sub: 'From architecture to deployment, I build the whole thing. AI agents, autonomous workflows, production products. You talk to the person writing the code.',
+  },
+  {
+    headline: 'Built to run.\nNot to demo.',
+    sub: 'Every system I ship is designed for real load, real users, real failure modes. No staging-only magic. One engineer, full ownership, production-first.',
+  },
+];
+
 export const COPY = {
   meta: {
     title: 'Hershey Goldberger',
@@ -5,8 +37,6 @@ export const COPY = {
   },
   hero: {
     eyebrow: 'Building agentic AI that runs in production',
-    headline: 'Your AI\nshouldn\'t need\na babysitter.',
-    sub: 'I architect autonomous systems that replace workflows, not assist them. When something breaks, I fix it at the source. One engineer. Full ownership. No layers.',
     cta: 'Start a conversation',
     ghost: 'See the work',
   },
@@ -75,7 +105,6 @@ export const COPY = {
   },
   footer: {
     left: '\u00a9 YEAR Hershey Goldberger',
-    right: 'Built by hand. Shipped to production.',
   },
   terminal: {
     title: '~/projects',
@@ -95,5 +124,4 @@ export const COPY = {
     ],
   },
   terminalCompact: '\u25cf Live in production \u00b7 180k+ processed \u00b7 $9.2M volume',
-  mobileMenuStats: ['Live in production', '180k+ processed'],
 } as const;

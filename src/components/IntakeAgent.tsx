@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useInView, useReducedMotion } from "framer-motion";
-import { STEPS, AGENT_RESPONSES, type AgentStep } from "./intake-agent-constants";
-import { DEMO_SCRIPTS, DEMO_TIMING, createRotation, type DemoMessage } from "./conversation-constants";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
+import { STEPS, AGENT_RESPONSES, INTAKE_GREETINGS } from "./intake-agent-constants";
+import { COPY } from "@/lib/constants";
 
 // Types
 
@@ -15,7 +15,7 @@ interface Message {
 type Answers = Record<string, string>;
 
 type Phase =
-  | { kind: "demo" }
+  | { kind: "idle" }
   | { kind: "typing" }
   | { kind: "options"; stepId: string; options: string[] }
   | { kind: "input"; stepId: string; inputType: "input" | "textarea"; placeholder: string }
@@ -88,7 +88,7 @@ function OptionButtons({
   onSelect: (opt: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2 ml-[38px] mt-3 intake-animate-in">
+    <div className="flex flex-wrap gap-2 ml-0 md:ml-[38px] mt-3 intake-animate-in">
       {options.map((opt) => (
         <button
           key={opt}
@@ -137,7 +137,7 @@ function TextInput({
     "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-slate-700 rounded-lg bg-black/25 text-slate-200 outline-none focus:border-sky-400 transition-colors placeholder:text-slate-500";
 
   return (
-    <div className="flex gap-2 ml-[38px] mt-3 intake-animate-in">
+    <div className="flex gap-2 ml-0 md:ml-[38px] mt-3 intake-animate-in">
       {inputType === "textarea" ? (
         <textarea
           ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -184,7 +184,7 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
   ];
 
   return (
-    <div className="bg-black/25 border border-slate-700 rounded-xl p-4 px-5 ml-[38px] mt-3 intake-animate-in">
+    <div className="bg-black/25 border border-slate-700 rounded-xl p-4 px-5 ml-0 md:ml-[38px] mt-3 intake-animate-in">
       <div className="flex items-center gap-1.5 text-xs text-emerald-400 mb-3 font-mono">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <polyline points="20 6 9 17 4 12" />
@@ -207,19 +207,118 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
   );
 }
 
+// Chat content — shared between embedded and modal views
+function IntakeChatContent({
+  chatRef,
+  messages,
+  phase,
+  stepIndex,
+  answers,
+  summaryRef,
+  handleUserResponse,
+  onClose,
+  isModal,
+}: {
+  chatRef: React.RefObject<HTMLDivElement | null>;
+  messages: Message[];
+  phase: Phase;
+  stepIndex: number;
+  answers: Answers;
+  summaryRef: string;
+  handleUserResponse: (val: string) => void;
+  onClose?: () => void;
+  isModal?: boolean;
+}) {
+  const isDone = phase.kind === "done" || phase.kind === "summary";
+  const displayStep = isDone ? STEPS.length : Math.min(stepIndex + 1, STEPS.length);
+  const progress = Math.round((displayStep / STEPS.length) * 100);
+
+  return (
+    <div className={`bg-[#162232] ${isModal ? "flex flex-col h-full" : "border border-[#1e3348] rounded-[14px] overflow-hidden"}`}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#1e3348] bg-black/15 flex-shrink-0">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+        <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+        <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
+        {stepIndex > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="font-mono text-[11px] text-slate-400">
+              {displayStep}/{STEPS.length}
+            </span>
+          </div>
+        )}
+        {isModal && onClose && (
+          <button
+            onClick={onClose}
+            className="ml-2 text-slate-400 hover:text-white transition-colors text-lg leading-none p-1"
+            aria-label="Close intake form"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Chat body */}
+      <div
+        ref={chatRef}
+        className={`p-6 font-mono text-sm leading-relaxed overflow-y-auto scroll-smooth intake-scroll ${
+          isModal ? "flex-1" : "min-h-[380px] max-h-[520px]"
+        }`}
+      >
+        {messages.map((msg, i) =>
+          msg.from === "agent" ? (
+            <AgentMessage key={i} text={msg.text} />
+          ) : (
+            <UserMessage key={i} text={msg.text} />
+          )
+        )}
+
+        {phase.kind === "typing" && <AgentMessage isTyping />}
+
+        {phase.kind === "options" && (
+          <OptionButtons options={phase.options} onSelect={handleUserResponse} />
+        )}
+
+        {phase.kind === "input" && (
+          <TextInput
+            inputType={phase.inputType}
+            placeholder={phase.placeholder}
+            onSubmit={handleUserResponse}
+          />
+        )}
+
+        {(phase.kind === "summary" || phase.kind === "done") && summaryRef && (
+          <SummaryCard answers={answers} refId={summaryRef} />
+        )}
+      </div>
+
+      {/* Safe area spacer for modal on notched devices */}
+      {isModal && (
+        <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom,0px)]" />
+      )}
+    </div>
+  );
+}
+
 // Main Component
 
 export default function IntakeAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [phase, setPhase] = useState<Phase>({ kind: "demo" });
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [summaryRef, setSummaryRef] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const hasRun = useRef(false);
-  const getNextScript = useRef(createRotation(DEMO_SCRIPTS)).current;
-  const [demoMessages, setDemoMessages] = useState<DemoMessage[]>([]);
   const timeoutIds = useRef<NodeJS.Timeout[]>([]);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
   const prefersReducedMotion = useReducedMotion();
@@ -236,31 +335,6 @@ export default function IntakeAgent() {
     });
   }, []);
 
-  const playDemo = useCallback(async () => {
-    const script = getNextScript();
-    setPhase({ kind: "demo" });
-
-    for (const msg of script.messages) {
-      if (msg.from === "visitor") {
-        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.visitorDelay));
-        setDemoMessages((prev) => [...prev, msg]);
-        scrollToBottom();
-        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.messageReveal));
-      } else {
-        setPhase({ kind: "typing" });
-        scrollToBottom();
-        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.agentTypingShow));
-        setDemoMessages((prev) => [...prev, msg]);
-        setPhase({ kind: "demo" });
-        scrollToBottom();
-        await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.agentDelay));
-      }
-    }
-
-    await new Promise<void>((r) => trackedTimeout(r, DEMO_TIMING.pauseAfterScript));
-    setDemoMessages([]);
-  }, [getNextScript, scrollToBottom, trackedTimeout]);
-
   // Resolver ref for async user input
   const resolverRef = useRef<((val: string) => void) | null>(null);
 
@@ -274,7 +348,12 @@ export default function IntakeAgent() {
     []
   );
 
-  // Run the full agent flow
+  // Pick a random greeting once per component mount
+  const [greeting] = useState(() =>
+    INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
+  );
+
+  // Run the full agent flow — skip the demo gate, jump straight into intake
   const runFlow = useCallback(async () => {
     const currentAnswers: Answers = {};
 
@@ -283,7 +362,9 @@ export default function IntakeAgent() {
 
       // Build the agent message
       let msg = step.agentMsg;
-      if (step.id === "contact") {
+      if (step.id === "type") {
+        msg = greeting;
+      } else if (step.id === "contact") {
         msg = `Last one, ${currentAnswers.name || "friend"}. Where should Hershey actually reach you?`;
       }
 
@@ -409,54 +490,13 @@ export default function IntakeAgent() {
         scrollToBottom();
       }, 1200);
     }, 1200);
-  }, [scrollToBottom, trackedTimeout]);
+  }, [scrollToBottom, trackedTimeout, greeting]);
 
-  // Kick off agent when section enters viewport
+  // Start flow when the section enters viewport (desktop) — skip demo, go straight to intake
   useEffect(() => {
     if (!isInView || hasRun.current) return;
     hasRun.current = true;
-
-    // Skip demo choice for reduced motion — go straight to intake
-    if (prefersReducedMotion) {
-      setPhase({ kind: "typing" });
-      runFlow();
-      return;
-    }
-
-    (async () => {
-      // Show greeting with choice
-      setPhase({ kind: "typing" });
-      scrollToBottom();
-      await new Promise<void>((r) => trackedTimeout(r, 800));
-      setMessages([{
-        from: "agent",
-        text: "Hey — I'm the intake agent. I'll ask a few quick questions so Hershey knows what you need.\n\nWant to see a recent project conversation first?",
-      }]);
-      scrollToBottom();
-
-      // Wait for user choice
-      const choice = await new Promise<string>((resolve) => {
-        setPhase({
-          kind: "options",
-          stepId: "demo-choice",
-          options: ["Show me an example", "Let's get started"],
-        });
-        scrollToBottom();
-        resolverRef.current = resolve;
-      });
-
-      // Add user response
-      setMessages((prev) => [...prev, { from: "user", text: choice }]);
-      scrollToBottom();
-
-      if (choice === "Show me an example") {
-        await playDemo();
-      }
-
-      // Clear pre-step messages for clean intake start
-      setMessages([]);
-      runFlow();
-    })();
+    runFlow();
 
     return () => {
       timeoutIds.current.forEach(clearTimeout);
@@ -465,116 +505,148 @@ export default function IntakeAgent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInView]);
 
+  // Listen for mobile modal open requests (from FloatingCTA, Nav, Hero CTA)
+  useEffect(() => {
+    const handler = () => {
+      setModalOpen(true);
+      if (!hasRun.current) {
+        hasRun.current = true;
+        runFlow();
+      }
+    };
+    window.addEventListener("open-intake-modal", handler);
+    return () => window.removeEventListener("open-intake-modal", handler);
+  }, [runFlow]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [modalOpen]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    if (!modalOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setModalOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [modalOpen]);
+
   // Auto-scroll on message/phase changes
   useEffect(() => {
     scrollToBottom();
-  }, [messages, phase, demoMessages, scrollToBottom]);
-
-  const isDone = phase.kind === "done" || phase.kind === "summary";
-  const displayStep = isDone ? STEPS.length : Math.min(stepIndex + 1, STEPS.length);
-  const progress = Math.round((displayStep / STEPS.length) * 100);
+  }, [messages, phase, scrollToBottom]);
 
   return (
-    <section className="py-16 sm:py-32" ref={sectionRef}>
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="w-full max-w-[900px] mx-auto">
-          <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
-            03 // CONTACT
-          </p>
+    <>
+      {/* Embedded section — visible on desktop, hidden content on mobile (section header still shows) */}
+      <section className="py-16 sm:py-32 sm:pb-16" ref={sectionRef}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="w-full max-w-[900px] mx-auto">
+            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-6">
+              03 // CONTACT
+            </p>
 
-          <h2 className="text-[clamp(32px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4">
-            Got a system that needs building?
-          </h2>
+            <h2 className="text-[clamp(32px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4">
+              {COPY.contact.heading}
+            </h2>
 
-          <p className="text-[17px] text-slate-400 leading-relaxed max-w-[540px] mb-10">
-            I take on a limited number of projects at a time. No pitch decks required. Just tell me what
-            you need built.
-          </p>
+            <p className="text-[17px] text-slate-400 leading-relaxed max-w-[540px] mb-10">
+              {COPY.contact.sub}
+            </p>
 
-          <div id="contact" className="scroll-mt-20" />
-          {/* Terminal */}
-          <div className="bg-[#162232] border border-[#1e3348] rounded-[14px] overflow-hidden mb-6">
-            {/* Header */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#1e3348] bg-black/15">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-              <span className="font-mono text-xs text-slate-400 ml-2 flex-1">~/intake-agent</span>
-              {stepIndex > 0 && phase.kind !== "demo" && (
-                <div className="flex items-center gap-2">
-                  <div className="w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-sky-400 rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    />
+            <div id="contact" className="scroll-mt-20" />
+
+            {/* Desktop terminal — hidden on mobile */}
+            <div className="hidden md:block mb-6">
+              <IntakeChatContent
+                chatRef={chatRef}
+                messages={messages}
+                phase={phase}
+                stepIndex={stepIndex}
+                answers={answers}
+                summaryRef={summaryRef}
+                handleUserResponse={handleUserResponse}
+              />
+            </div>
+
+            {/* Mobile prompt — tap to open fullscreen */}
+            <div className="md:hidden mb-6">
+              <button
+                onClick={() => {
+                  setModalOpen(true);
+                  if (!hasRun.current) {
+                    hasRun.current = true;
+                    runFlow();
+                  }
+                }}
+                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-6 text-left group hover:border-sky-400/30 transition-colors"
+              >
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
+                    <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
                   </div>
-                  <span className="font-mono text-[11px] text-slate-400">
-                    {displayStep}/{STEPS.length}
-                  </span>
+                  <span className="font-mono text-[13px] text-slate-200">Intake Agent</span>
                 </div>
-              )}
+                <p className="font-mono text-[13px] text-slate-400 leading-relaxed">
+                  Tap to start a conversation. I&apos;ll ask a few quick questions so Hershey knows what you need.
+                </p>
+                <span className="inline-block mt-3 font-mono text-xs text-sky-400 group-hover:translate-x-1 transition-transform">
+                  Open chat →
+                </span>
+              </button>
             </div>
 
-            {/* Chat body */}
-            <div
-              ref={chatRef}
-              className="p-6 font-mono text-sm leading-relaxed min-h-[380px] max-h-[520px] overflow-y-auto scroll-smooth intake-scroll"
-            >
-              {(phase.kind === "demo" || (phase.kind === "typing" && demoMessages.length > 0 && messages.length === 0)) && (
-                <>
-                  {demoMessages.map((msg, i) =>
-                    msg.from === "agent" ? (
-                      <AgentMessage key={`demo-${i}`} text={msg.text} />
-                    ) : (
-                      <UserMessage key={`demo-${i}`} text={msg.text} />
-                    )
-                  )}
-                </>
-              )}
-
-              {messages.map((msg, i) =>
-                msg.from === "agent" ? (
-                  <AgentMessage key={i} text={msg.text} />
-                ) : (
-                  <UserMessage key={i} text={msg.text} />
-                )
-              )}
-
-              {phase.kind === "typing" && <AgentMessage isTyping />}
-
-              {phase.kind === "options" && (
-                <OptionButtons options={phase.options} onSelect={handleUserResponse} />
-              )}
-
-              {phase.kind === "input" && (
-                <TextInput
-                  inputType={phase.inputType}
-                  placeholder={phase.placeholder}
-                  onSubmit={handleUserResponse}
-                />
-              )}
-
-              {(phase.kind === "summary" || phase.kind === "done") && summaryRef && (
-                <SummaryCard answers={answers} refId={summaryRef} />
-              )}
+            {/* Footer */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 font-mono text-[13px] text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Typical reply time: under 24h
+              </div>
+              <a
+                href="mailto:hello@hersheyg.com?subject=Project%20Inquiry"
+                className="font-mono text-[13px] text-slate-400 hover:text-sky-400 transition-colors"
+              >
+                hello@hersheyg.com →
+              </a>
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2 font-mono text-[13px] text-slate-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Currently accepting new projects.
-            </div>
-            <a
-              href="mailto:hello@hersheyg.com?subject=Project%20Inquiry"
-              className="font-mono text-[13px] text-slate-400 hover:text-sky-400 transition-colors"
-            >
-              or just email hello@hersheyg.com →
-            </a>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Fullscreen mobile modal */}
+      <AnimatePresence>
+        {modalOpen && (
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className="fixed inset-0 z-50 md:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Project intake form"
+          >
+            <IntakeChatContent
+              chatRef={chatRef}
+              messages={messages}
+              phase={phase}
+              stepIndex={stepIndex}
+              answers={answers}
+              summaryRef={summaryRef}
+              handleUserResponse={handleUserResponse}
+              onClose={() => setModalOpen(false)}
+              isModal
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

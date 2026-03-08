@@ -334,7 +334,8 @@ export default function IntakeAgent() {
   const [summaryRef, setSummaryRef] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const chatRef = useRef<HTMLDivElement>(null);
+  const desktopChatRef = useRef<HTMLDivElement>(null);
+  const modalChatRef = useRef<HTMLDivElement>(null);
   const hasRun = useRef(false);
   const timeoutIds = useRef<NodeJS.Timeout[]>([]);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
@@ -348,7 +349,9 @@ export default function IntakeAgent() {
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
-      if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      for (const ref of [desktopChatRef, modalChatRef]) {
+        if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+      }
     });
   }, []);
 
@@ -570,7 +573,7 @@ export default function IntakeAgent() {
             {/* Desktop terminal — hidden on mobile */}
             <div className="hidden md:block mb-6">
               <IntakeChatContent
-                chatRef={chatRef}
+                chatRef={desktopChatRef}
                 messages={messages}
                 phase={phase}
                 stepIndex={stepIndex}
@@ -649,7 +652,7 @@ export default function IntakeAgent() {
               aria-label="Project intake form"
             >
               <IntakeChatContent
-                chatRef={chatRef}
+                chatRef={modalChatRef}
                 messages={messages}
                 phase={phase}
                 stepIndex={stepIndex}

@@ -25,9 +25,11 @@ export default function RevealOnScroll({
       ? { opacity: 0, x: -24 }
       : { opacity: 0, y: 32 };
 
-  const animate = isInView
+  const animate = prefersReducedMotion
     ? { opacity: 1, x: 0, y: 0 }
-    : initial;
+    : isInView
+      ? { opacity: 1, x: 0, y: 0 }
+      : initial;
 
   return (
     <motion.div

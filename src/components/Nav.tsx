@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const NAV_LINKS = [
   { label: "what I build", href: "#services" },
@@ -11,6 +11,7 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     function handleScroll() {
@@ -22,10 +23,23 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleMobileCTA = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.dispatchEvent(new CustomEvent("open-intake-modal"));
-  };
+  // Close menu on resize to desktop
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = () => { if (mq.matches) setMenuOpen(false); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const handleMobileLink = useCallback((href: string) => {
+    setMenuOpen(false);
+    if (href === "#contact") {
+      window.dispatchEvent(new CustomEvent("open-intake-modal"));
+    } else {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
   return (
     <motion.nav
@@ -70,14 +84,44 @@ export default function Nav() {
           ))}
         </ul>
 
-        {/* Mobile pill CTA — replaces hamburger menu */}
+        {/* Mobile hamburger */}
         <button
-          onClick={handleMobileCTA}
-          className="md:hidden font-mono text-xs text-white bg-accent border border-accent-lit/30 rounded-full px-4 py-2 hover:bg-accent-lit transition-colors"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="md:hidden w-9 h-9 flex flex-col items-center justify-center gap-[5px]"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
         >
-          let&apos;s talk
+          <span className={`block w-5 h-[1.5px] bg-white transition-transform duration-200 ${menuOpen ? "translate-y-[6.5px] rotate-45" : ""}`} />
+          <span className={`block w-5 h-[1.5px] bg-white transition-opacity duration-200 ${menuOpen ? "opacity-0" : ""}`} />
+          <span className={`block w-5 h-[1.5px] bg-white transition-transform duration-200 ${menuOpen ? "-translate-y-[6.5px] -rotate-45" : ""}`} />
         </button>
       </div>
+
+      {/* Mobile dropdown */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="md:hidden overflow-hidden border-t border-line bg-bg/95 backdrop-blur-md"
+          >
+            <ul className="flex flex-col gap-1 px-6 py-4">
+              {NAV_LINKS.map((link) => (
+                <li key={link.href}>
+                  <button
+                    onClick={() => handleMobileLink(link.href)}
+                    className="w-full text-left py-2.5 text-sm text-dim hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }

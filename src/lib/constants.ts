@@ -104,7 +104,7 @@ export const COPY = {
     linkedin: 'https://www.linkedin.com/in/hersheyg',
   },
   footer: {
-    left: '\u00a9 YEAR Hershey Goldberger',
+    left: 'Hershey Goldberger',
   },
   terminal: {
     title: '~/projects',

@@ -35,7 +35,7 @@ export default function FloatingCTA() {
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden font-mono text-sm text-white bg-accent border border-accent-lit/30 rounded-full px-6 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-95 ${
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden font-mono text-sm text-white bg-accent border border-accent-lit/30 rounded-full px-6 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-[opacity,transform] duration-300 active:scale-95 ${
         visible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-4 pointer-events-none"

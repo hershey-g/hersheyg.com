@@ -38,7 +38,6 @@ export const COPY = {
   hero: {
     eyebrow: 'Building agentic AI that runs in production',
     cta: 'Start a conversation',
-    ghost: 'See the work',
   },
   nav: {
     services: 'services',

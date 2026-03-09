@@ -26,14 +26,13 @@ export default function Hero() {
         <div>
           {/* Eyebrow */}
           <motion.div
-            className="flex items-center gap-3 mb-5 sm:mb-6"
+            className="group flex items-center gap-3 mb-5 sm:mb-6"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <span
-              className="h-px bg-accent-lit"
-              style={{ animation: 'pulse-line 3s ease infinite' }}
+              className="h-px w-8 bg-accent-lit transition-[width] duration-300 ease-out group-hover:w-12"
               aria-hidden="true"
             />
             <span className="font-mono text-xs uppercase tracking-[0.12em] text-dim">
@@ -81,14 +80,6 @@ export default function Hero() {
               </a>
             </MagneticButton>
 
-            <a
-              href="#proof"
-              className="group font-mono text-sm text-body hover:text-white transition-colors py-2 relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit text-center sm:text-left"
-            >
-              {COPY.hero.ghost}
-              <span className="ml-1 inline-block animate-[bounce-arrow_2s_ease-in-out_infinite]" aria-hidden="true">↓</span>
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-text transition-all group-hover:w-full" />
-            </a>
           </motion.div>
 
           {/* Terminal compact - mobile only, below CTAs */}

@@ -432,11 +432,11 @@ function AgentMessage({
           H
         </span>
       </div>
-      <div className="bg-bg/40 border border-line rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
+      <div className="bg-bg/60 border border-line rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         {isTyping ? (
           <TypingDots />
         ) : (
-          <p className="text-[13px] leading-relaxed text-text font-mono whitespace-pre-line">
+          <p className="text-[13px] leading-relaxed text-white/90 font-mono whitespace-pre-line">
             {text}
           </p>
         )}
@@ -448,7 +448,7 @@ function AgentMessage({
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-accent-lit/10 border border-accent-lit/15 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
+      <div className="bg-accent-lit/10 border border-accent-lit/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-accent-lit font-mono">
           {text}
         </p>
@@ -465,13 +465,13 @@ function OptionButtons({
   onSelect: (opt: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex flex-wrap gap-2.5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       {options.map((opt) => (
         <button
           key={opt}
           onClick={() => onSelect(opt)}
           className="font-mono text-xs px-3.5 py-2 border border-line rounded-lg
-                     text-dim hover:border-accent-lit hover:text-accent-lit
+                     text-body hover:border-accent-lit hover:text-accent-lit
                      hover:bg-accent-lit/10 hover:-translate-y-px transition-all duration-200
                      active:scale-[0.97]"
         >
@@ -513,10 +513,10 @@ function TextInput({
   };
 
   const sharedClasses =
-    "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-line rounded-lg bg-bg/40 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
+    "font-mono text-[13px] flex-1 px-4 py-3 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
 
   return (
-    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       {inputType === "textarea" ? (
         <textarea
           ref={inputRef as RefObject<HTMLTextAreaElement>}
@@ -572,7 +572,7 @@ function SummaryCard({
   ];
 
   return (
-    <div className="bg-bg/40 border border-line rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
+    <div className="bg-bg/60 border border-line rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       <div className="flex items-center gap-1.5 text-xs text-term-success mb-3 font-mono">
         <svg
           width="14"
@@ -592,8 +592,8 @@ function SummaryCard({
             <div key={i} className="col-span-2 h-px bg-line my-1" />
           ) : (
             <div key={i} className="contents">
-              <span className="text-dim">{row[0]}</span>
-              <span className="text-text break-words">{row[1]}</span>
+              <span className="text-body">{row[0]}</span>
+              <span className="text-white/90 break-words">{row[1]}</span>
             </div>
           )
         )}
@@ -698,7 +698,7 @@ function IntakeChatContent({
       {/* Chat body — flex-1 with min-h-0 for scroll isolation */}
       <div
         ref={chatRef}
-        className={`p-4 sm:p-6 font-mono text-sm leading-relaxed overflow-y-auto scroll-smooth intake-scroll flex-1 min-h-0`}
+        className={`p-5 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0`}
       >
         {messages.map((msg, i) =>
           msg.from === "agent" ? (

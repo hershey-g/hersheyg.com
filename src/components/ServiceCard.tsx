@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useReducedMotion } from "framer-motion";
 
 interface ServiceCardProps {
@@ -12,25 +12,25 @@ interface ServiceCardProps {
 
 export default function ServiceCard({ num, title, body, tags }: ServiceCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [glowPos, setGlowPos] = useState<{ x: number; y: number } | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (prefersReducedMotion) return;
-      const card = cardRef.current;
-      if (!card) return;
-      const rect = card.getBoundingClientRect();
-      setGlowPos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+      const el = cardRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      el.style.setProperty("--glow-x", `${e.clientX - rect.left}px`);
+      el.style.setProperty("--glow-y", `${e.clientY - rect.top}px`);
+      el.style.setProperty("--glow-opacity", "1");
     },
     [prefersReducedMotion],
   );
 
   const handleMouseLeave = useCallback(() => {
-    setGlowPos(null);
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.setProperty("--glow-opacity", "0");
   }, []);
 
   return (
@@ -41,14 +41,14 @@ export default function ServiceCard({ num, title, body, tags }: ServiceCardProps
       className="group relative overflow-hidden bg-bg p-5 sm:p-6 lg:p-8 border border-line rounded-md hover:border-[rgba(59,124,192,0.15)] hover:shadow-[0_0_20px_rgba(59,124,192,0.08)] transition-[border-color,box-shadow] duration-300 h-full"
     >
       {/* Cursor glow */}
-      {glowPos && (
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `radial-gradient(300px circle at ${glowPos.x}px ${glowPos.y}px, rgba(59,124,192,0.1), transparent 60%)`,
-          }}
-        />
-      )}
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+        style={{
+          background: "radial-gradient(300px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(59,124,192,0.1), transparent 60%)",
+          opacity: "var(--glow-opacity, 0)",
+        }}
+        aria-hidden="true"
+      />
 
       <div className="relative flex flex-col h-full">
         <span className="font-mono text-xs text-dim mb-3 sm:mb-6 block">{num}</span>

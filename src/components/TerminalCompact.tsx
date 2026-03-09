@@ -7,7 +7,7 @@ export default function TerminalCompact() {
       aria-hidden="true"
     >
       <span
-        className="inline-block h-2 w-2 rounded-full bg-[#22c55e]"
+        className="inline-block h-2 w-2 rounded-full bg-term-green"
         style={{ animation: "blink 2s ease infinite" }}
       />
       <span className="text-dim">{COPY.terminalCompact}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 
 const CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?";
@@ -13,6 +13,7 @@ export default function TextScramble({ text }: TextScrambleProps) {
   const prefersReducedMotion = useReducedMotion();
   const [displayed, setDisplayed] = useState(text);
   const [scrambling, setScrambling] = useState(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const scramble = useCallback(() => {
     const length = text.length;
@@ -64,12 +65,18 @@ export default function TextScramble({ text }: TextScrambleProps) {
     }
     setDisplayed(result);
 
+    // Kill any previous scramble interval
+    cleanupRef.current?.();
+
     // Delay before starting scramble
     const timeout = setTimeout(() => {
-      scramble();
+      cleanupRef.current = scramble();
     }, 600);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      cleanupRef.current?.();
+    };
   }, [text, prefersReducedMotion, scramble]);
 
   // Render with line breaks

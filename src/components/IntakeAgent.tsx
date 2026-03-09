@@ -1,11 +1,30 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { STEPS, AGENT_RESPONSES, INTAKE_GREETINGS } from "./intake-agent-constants";
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useReducer,
+  type RefObject,
+} from "react";
+import { createPortal } from "react-dom";
+import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useReducedMotion,
+} from "framer-motion";
+import {
+  STEPS,
+  AGENT_RESPONSES,
+  INTAKE_GREETINGS,
+} from "./intake-agent-constants";
 import { COPY } from "@/lib/constants";
 
-// Types
+/* ═══════════════════════════════════════════════════════════════════════════
+   Types
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 interface Message {
   from: "agent" | "user";
@@ -18,11 +37,128 @@ type Phase =
   | { kind: "idle" }
   | { kind: "typing" }
   | { kind: "options"; stepId: string; options: string[] }
-  | { kind: "input"; stepId: string; inputType: "input" | "textarea"; placeholder: string }
+  | {
+      kind: "input";
+      stepId: string;
+      inputType: "input" | "textarea";
+      placeholder: string;
+    }
   | { kind: "summary"; answers: Answers; ref: string }
   | { kind: "done" };
 
-// Helpers
+interface ConversationState {
+  sessionId: number;
+  messages: Message[];
+  phase: Phase;
+  stepIndex: number;
+  answers: Answers;
+  summaryRef: string;
+  status: "idle" | "running" | "done";
+}
+
+type Action =
+  | { type: "START_SESSION" }
+  | { type: "ADD_MESSAGE"; sessionId: number; message: Message }
+  | { type: "SET_PHASE"; sessionId: number; phase: Phase }
+  | { type: "SET_STEP_INDEX"; sessionId: number; index: number }
+  | { type: "SET_ANSWERS"; sessionId: number; answers: Answers }
+  | { type: "SET_SUMMARY_REF"; sessionId: number; ref: string }
+  | { type: "SET_STATUS"; sessionId: number; status: "idle" | "running" | "done" }
+  | { type: "RESET" };
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Reducer
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const initialState: ConversationState = {
+  sessionId: 0,
+  messages: [],
+  phase: { kind: "idle" },
+  stepIndex: 0,
+  answers: {},
+  summaryRef: "",
+  status: "idle",
+};
+
+function reducer(state: ConversationState, action: Action): ConversationState {
+  switch (action.type) {
+    case "START_SESSION":
+      return {
+        ...initialState,
+        sessionId: state.sessionId + 1,
+        status: "running",
+      };
+    case "RESET":
+      return { ...initialState, sessionId: state.sessionId };
+    default:
+      break;
+  }
+
+  // All remaining actions carry sessionId — ignore stale dispatches
+  if ("sessionId" in action && action.sessionId !== state.sessionId) {
+    return state;
+  }
+
+  switch (action.type) {
+    case "ADD_MESSAGE":
+      return { ...state, messages: [...state.messages, action.message] };
+    case "SET_PHASE":
+      return { ...state, phase: action.phase };
+    case "SET_STEP_INDEX":
+      return { ...state, stepIndex: action.index };
+    case "SET_ANSWERS":
+      return { ...state, answers: action.answers };
+    case "SET_SUMMARY_REF":
+      return { ...state, summaryRef: action.ref };
+    case "SET_STATUS":
+      return { ...state, status: action.status };
+    default:
+      return state;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Async helpers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const id = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(id);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true }
+    );
+  });
+}
+
+/** Resolver map keyed by session ID. */
+const inputResolvers = new Map<number, (val: string) => void>();
+
+function waitForInput(sessionId: number, signal: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    inputResolvers.set(sessionId, resolve);
+    signal.addEventListener(
+      "abort",
+      () => {
+        inputResolvers.delete(sessionId);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true }
+    );
+  });
+}
 
 function generateRef() {
   return "#PRJ-" + Math.floor(1000 + Math.random() * 9000);
@@ -32,15 +168,246 @@ function truncate(str: string, max: number) {
   return str.length > max ? str.slice(0, max) + "..." : str;
 }
 
-// Sub-components
+/* ═══════════════════════════════════════════════════════════════════════════
+   runConversation — standalone async function
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function runConversation(
+  dispatch: React.Dispatch<Action>,
+  sessionId: number,
+  signal: AbortSignal,
+  greeting: string
+) {
+  /** Dispatch with sessionId auto-injected. Accepts any action payload sans sessionId. */
+  const d = (
+    action:
+      | { type: "ADD_MESSAGE"; message: Message }
+      | { type: "SET_PHASE"; phase: Phase }
+      | { type: "SET_STEP_INDEX"; index: number }
+      | { type: "SET_ANSWERS"; answers: Answers }
+      | { type: "SET_SUMMARY_REF"; ref: string }
+      | { type: "SET_STATUS"; status: "idle" | "running" | "done" }
+  ) => {
+    dispatch({ ...action, sessionId } as Action);
+  };
+
+  const currentAnswers: Answers = {};
+
+  for (let i = 0; i < STEPS.length; i++) {
+    const step = STEPS[i];
+
+    let msg = step.agentMsg;
+    if (step.id === "type") {
+      msg = greeting;
+    } else if (step.id === "contact") {
+      msg = `Last one, ${currentAnswers.name || "friend"}. Where should Hershey actually reach you?`;
+    }
+
+    // Show typing indicator
+    d({ type: "SET_PHASE", phase: { kind: "typing" } });
+
+    const text = msg ?? "";
+    const typingDelay = 600 + Math.min(text.length * 8, 1200);
+    await delay(typingDelay, signal);
+
+    // Add agent message
+    d({ type: "ADD_MESSAGE", message: { from: "agent", text } });
+    d({ type: "SET_STEP_INDEX", index: i + 1 });
+
+    // Show input UI
+    if (step.options) {
+      d({
+        type: "SET_PHASE",
+        phase: { kind: "options", stepId: step.id, options: step.options },
+      });
+    } else if (step.type) {
+      d({
+        type: "SET_PHASE",
+        phase: {
+          kind: "input",
+          stepId: step.id,
+          inputType: step.type,
+          placeholder: step.placeholder ?? "",
+        },
+      });
+    }
+
+    // Wait for user input
+    const userAnswer = await waitForInput(sessionId, signal);
+
+    currentAnswers[step.id] = userAnswer;
+    d({ type: "SET_ANSWERS", answers: { ...currentAnswers } });
+    d({ type: "ADD_MESSAGE", message: { from: "user", text: userAnswer } });
+
+    // Contextual reply
+    const contextReply = AGENT_RESPONSES[step.id]?.[userAnswer];
+    if (contextReply) {
+      d({ type: "SET_PHASE", phase: { kind: "typing" } });
+      const contextDelay = 600 + Math.min(contextReply.length * 8, 1200);
+      await delay(contextDelay, signal);
+      d({
+        type: "ADD_MESSAGE",
+        message: { from: "agent", text: contextReply },
+      });
+    }
+  }
+
+  // Wrap-up
+  d({ type: "SET_STEP_INDEX", index: STEPS.length });
+  d({ type: "SET_PHASE", phase: { kind: "typing" } });
+  await delay(1000, signal);
+
+  const wrapMsg = "That's a wrap. Here's what I'm sending Hershey:";
+  d({ type: "ADD_MESSAGE", message: { from: "agent", text: wrapMsg } });
+
+  const ref = generateRef();
+  d({ type: "SET_SUMMARY_REF", ref });
+  d({
+    type: "SET_PHASE",
+    phase: { kind: "summary", answers: currentAnswers, ref },
+  });
+
+  // Submit to API
+  try {
+    const res = await fetch("/api/intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...currentAnswers, ref }),
+      signal,
+    });
+
+    if (!res.ok) throw new Error("Failed to send");
+
+    await delay(1200, signal);
+    d({ type: "SET_PHASE", phase: { kind: "typing" } });
+    await delay(1200, signal);
+
+    const contact = currentAnswers.contact || "your inbox";
+    const closingMsg = `You'll get a confirmation at ${contact} shortly. Hershey will personally follow up within a few hours. Probably sooner. The man lives in his terminal.`;
+    d({ type: "ADD_MESSAGE", message: { from: "agent", text: closingMsg } });
+    d({ type: "SET_PHASE", phase: { kind: "done" } });
+    d({ type: "SET_STATUS", status: "done" });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+
+    await delay(800, signal);
+    d({
+      type: "ADD_MESSAGE",
+      message: {
+        from: "agent",
+        text: "Hmm, something went sideways sending that. No worries though \u2014 just email hello@hersheyg.com with what you told me and Hershey will pick it up.",
+      },
+    });
+    d({ type: "SET_SUMMARY_REF", ref: "" });
+    d({ type: "SET_PHASE", phase: { kind: "done" } });
+    d({ type: "SET_STATUS", status: "done" });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Hooks: useFocusTrap, useScrollLock
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function useFocusTrap(
+  containerRef: RefObject<HTMLElement | null>,
+  isActive: boolean,
+  onEscape: () => void
+) {
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    // Save currently focused element
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Focus first focusable element
+    const focusFirst = () => {
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length > 0) focusable[0].focus();
+    };
+
+    // Small delay to let animation start
+    const timer = setTimeout(focusFirst, 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onEscape();
+        return;
+      }
+
+      if (e.key !== "Tab") return;
+
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", handleKeyDown);
+      // Restore focus
+      previousFocusRef.current?.focus();
+    };
+  }, [isActive, containerRef, onEscape]);
+}
+
+function useScrollLock(isLocked: boolean) {
+  useEffect(() => {
+    if (!isLocked) return;
+
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+    };
+  }, [isLocked]);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sub-components
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function TypingDots() {
   return (
-    <div className="flex gap-1 py-1">
+    <div className="flex gap-1 py-1" role="status" aria-label="Agent is typing">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-slate-500"
+          className="w-1.5 h-1.5 rounded-full bg-dim"
           style={{
             animation: "intake-bounce 1.2s infinite",
             animationDelay: `${i * 150}ms`,
@@ -51,17 +418,25 @@ function TypingDots() {
   );
 }
 
-function AgentMessage({ text, isTyping }: { text?: string; isTyping?: boolean }) {
+function AgentMessage({
+  text,
+  isTyping,
+}: {
+  text?: string;
+  isTyping?: boolean;
+}) {
   return (
     <div className="flex gap-2.5 items-start mb-4 intake-animate-in">
-      <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
+      <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-xs text-accent-lit font-mono font-semibold">
+          H
+        </span>
       </div>
-      <div className="bg-black/20 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
+      <div className="bg-bg/60 border border-accent-lit/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         {isTyping ? (
           <TypingDots />
         ) : (
-          <p className="text-[13px] leading-relaxed text-slate-200 font-mono whitespace-pre-line">
+          <p className="text-[13px] leading-relaxed text-white/90 font-mono whitespace-pre-line">
             {text}
           </p>
         )}
@@ -73,8 +448,10 @@ function AgentMessage({ text, isTyping }: { text?: string; isTyping?: boolean })
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-sky-400/10 border border-sky-400/15 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 max-w-[85%]">
-        <p className="text-[13px] leading-relaxed text-sky-400 font-mono">{text}</p>
+      <div className="bg-accent-lit/10 border border-accent-lit/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+        <p className="text-[13px] leading-relaxed text-accent-lit font-mono">
+          {text}
+        </p>
       </div>
     </div>
   );
@@ -88,14 +465,14 @@ function OptionButtons({
   onSelect: (opt: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex flex-wrap gap-2.5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       {options.map((opt) => (
         <button
           key={opt}
           onClick={() => onSelect(opt)}
-          className="font-mono text-xs px-3.5 py-2 border border-slate-700 rounded-lg
-                     text-slate-400 hover:border-sky-400 hover:text-sky-400
-                     hover:bg-sky-400/10 hover:-translate-y-px transition-all duration-200
+          className="font-mono text-xs px-3.5 py-2 border border-accent-lit/20 rounded-lg
+                     text-body hover:border-accent-lit hover:text-accent-lit
+                     hover:bg-accent-lit/10 hover:-translate-y-px transition-all duration-200
                      active:scale-[0.97]"
         >
           {opt}
@@ -118,7 +495,6 @@ function TextInput({
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // Small delay to let modal animation finish before focusing
     const timer = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(timer);
   }, []);
@@ -137,22 +513,22 @@ function TextInput({
   };
 
   const sharedClasses =
-    "font-mono text-[13px] flex-1 px-3.5 py-2.5 border border-slate-700 rounded-lg bg-black/25 text-slate-200 outline-none focus:border-sky-400 transition-colors placeholder:text-slate-500";
+    "font-mono text-[13px] flex-1 px-4 py-3 border border-accent-lit/20 rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
 
   return (
-    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
+    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       {inputType === "textarea" ? (
         <textarea
-          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+          ref={inputRef as RefObject<HTMLTextAreaElement>}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`${sharedClasses} min-h-[72px] resize-y leading-relaxed`}
+          className={`${sharedClasses} min-h-[72px] resize-none max-h-[120px] leading-relaxed`}
         />
       ) : (
         <input
-          ref={inputRef as React.RefObject<HTMLInputElement>}
+          ref={inputRef as RefObject<HTMLInputElement>}
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -164,8 +540,8 @@ function TextInput({
       <button
         onClick={handleSubmit}
         disabled={!value.trim()}
-        className="font-mono text-xs px-4 py-2.5 border border-sky-400 rounded-lg
-                   bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 transition-all
+        className="font-mono text-xs px-4 py-2.5 border border-accent-lit rounded-lg
+                   bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
                    disabled:opacity-25 disabled:cursor-not-allowed self-end"
       >
         →
@@ -174,10 +550,19 @@ function TextInput({
   );
 }
 
-function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
+function SummaryCard({
+  answers,
+  refId,
+}: {
+  answers: Answers;
+  refId: string;
+}) {
   const rows: Array<[string, string] | "divider"> = [
     ["Project", answers.type ?? "\u2014"],
-    ["Description", answers.describe ? truncate(answers.describe, 80) : "\u2014"],
+    [
+      "Description",
+      answers.describe ? truncate(answers.describe, 80) : "\u2014",
+    ],
     "divider",
     ["Timeline", answers.timeline ?? "\u2014"],
     ["Budget", answers.budget ?? "\u2014"],
@@ -187,9 +572,16 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
   ];
 
   return (
-    <div className="bg-black/25 border border-slate-700 rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-3 intake-animate-in">
-      <div className="flex items-center gap-1.5 text-xs text-emerald-400 mb-3 font-mono">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <div className="bg-bg/60 border border-accent-lit/15 rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
+      <div className="flex items-center gap-1.5 text-xs text-term-success mb-3 font-mono">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
           <polyline points="20 6 9 17 4 12" />
         </svg>
         Brief sent · ref {refId}
@@ -197,11 +589,11 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
       <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr] gap-x-3 sm:gap-x-4 gap-y-2 text-xs font-mono">
         {rows.map((row, i) =>
           row === "divider" ? (
-            <div key={i} className="col-span-2 h-px bg-slate-700 my-1" />
+            <div key={i} className="col-span-2 h-px bg-accent-lit/10 my-1" />
           ) : (
             <div key={i} className="contents">
-              <span className="text-slate-400">{row[0]}</span>
-              <span className="text-slate-200 break-words">{row[1]}</span>
+              <span className="text-body">{row[0]}</span>
+              <span className="text-white/90 break-words">{row[1]}</span>
             </div>
           )
         )}
@@ -210,7 +602,10 @@ function SummaryCard({ answers, refId }: { answers: Answers; refId: string }) {
   );
 }
 
-// Chat content — shared between embedded and modal views
+/* ═══════════════════════════════════════════════════════════════════════════
+   IntakeChatContent — shared between desktop embed and mobile modal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 function IntakeChatContent({
   chatRef,
   messages,
@@ -222,7 +617,7 @@ function IntakeChatContent({
   onClose,
   isModal,
 }: {
-  chatRef: React.RefObject<HTMLDivElement | null>;
+  chatRef: RefObject<HTMLDivElement | null>;
   messages: Message[];
   phase: Phase;
   stepIndex: number;
@@ -233,37 +628,47 @@ function IntakeChatContent({
   isModal?: boolean;
 }) {
   const isDone = phase.kind === "done" || phase.kind === "summary";
-  const displayStep = isDone ? STEPS.length : Math.min(stepIndex + 1, STEPS.length);
+  const displayStep = isDone
+    ? STEPS.length
+    : Math.min(stepIndex + 1, STEPS.length);
   const progress = Math.round((displayStep / STEPS.length) * 100);
 
   return (
-    <div className={`bg-[#162232] ${isModal ? "flex flex-col h-full" : "border border-[#1e3348] rounded-[14px] overflow-hidden"}`}>
+    <div
+      className={`bg-surface ${
+        isModal
+          ? "flex flex-col h-full"
+          : "border border-accent-lit/20 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
+      }`}
+    >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[#1e3348] bg-black/15 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-accent-lit/15 bg-bg/30 flex-shrink-0">
         {!isModal && (
           <>
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
+            <span className="w-2.5 h-2.5 rounded-full bg-term-yellow" />
+            <span className="w-2.5 h-2.5 rounded-full bg-term-green" />
           </>
         )}
         {isModal && (
-          <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
+          <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs text-accent-lit font-mono font-semibold">
+              H
+            </span>
           </div>
         )}
-        <span className="font-mono text-xs text-slate-400 ml-1 sm:ml-2 flex-1">
+        <span className="font-mono text-xs text-dim ml-1 sm:ml-2 flex-1">
           {isModal ? "Intake Agent" : "~/intake-agent"}
         </span>
         {stepIndex > 0 && (
           <div className="flex items-center gap-2">
-            <div className="w-[80px] sm:w-[100px] h-[3px] bg-[#1e3348] rounded-full overflow-hidden">
+            <div className="w-[80px] sm:w-[100px] h-[3px] bg-accent-lit/15 rounded-full overflow-hidden">
               <div
-                className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                className="h-full bg-accent-lit rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="font-mono text-[11px] text-slate-400">
+            <span className="font-mono text-[11px] text-dim">
               {displayStep}/{STEPS.length}
             </span>
           </div>
@@ -271,10 +676,18 @@ function IntakeChatContent({
         {isModal && onClose && (
           <button
             onClick={onClose}
-            className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-dim hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close intake form"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -282,12 +695,10 @@ function IntakeChatContent({
         )}
       </div>
 
-      {/* Chat body */}
+      {/* Chat body — flex-1 with min-h-0 for scroll isolation */}
       <div
         ref={chatRef}
-        className={`p-4 sm:p-6 font-mono text-sm leading-relaxed overflow-y-auto scroll-smooth intake-scroll ${
-          isModal ? "flex-1" : "min-h-[380px] max-h-[520px]"
-        }`}
+        className={`p-5 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0`}
       >
         {messages.map((msg, i) =>
           msg.from === "agent" ? (
@@ -300,7 +711,10 @@ function IntakeChatContent({
         {phase.kind === "typing" && <AgentMessage isTyping />}
 
         {phase.kind === "options" && (
-          <OptionButtons options={phase.options} onSelect={handleUserResponse} />
+          <OptionButtons
+            options={phase.options}
+            onSelect={handleUserResponse}
+          />
         )}
 
         {phase.kind === "input" && (
@@ -311,257 +725,232 @@ function IntakeChatContent({
           />
         )}
 
-        {(phase.kind === "summary" || phase.kind === "done") && summaryRef && (
-          <SummaryCard answers={answers} refId={summaryRef} />
-        )}
+        {(phase.kind === "summary" || phase.kind === "done") &&
+          summaryRef && <SummaryCard answers={answers} refId={summaryRef} />}
       </div>
 
-      {/* Safe area spacer for modal on notched devices */}
-      {isModal && (
-        <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom,0px)]" />
-      )}
+      {/* Input area bottom spacer — shrink-0 to keep it pinned */}
+      <div className="flex-shrink-0">
+        {/* Safe area spacer for modal on notched devices */}
+        {isModal && (
+          <div className="pb-[env(safe-area-inset-bottom,0px)]" />
+        )}
+      </div>
     </div>
   );
 }
 
-// Main Component
+/* ═══════════════════════════════════════════════════════════════════════════
+   Modal — rendered via React Portal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function IntakeModal({
+  isOpen,
+  chatRef,
+  messages,
+  phase,
+  stepIndex,
+  answers,
+  summaryRef,
+  handleUserResponse,
+  onClose,
+  prefersReducedMotion,
+}: {
+  isOpen: boolean;
+  chatRef: RefObject<HTMLDivElement | null>;
+  messages: Message[];
+  phase: Phase;
+  stepIndex: number;
+  answers: Answers;
+  summaryRef: string;
+  handleUserResponse: (val: string) => void;
+  onClose: () => void;
+  prefersReducedMotion: boolean | null;
+}) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useFocusTrap(modalRef, isOpen, onClose);
+  useScrollLock(isOpen);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop — z-[60] */}
+          <motion.div
+            key="intake-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-black/60 md:hidden"
+            onClick={onClose}
+          />
+          {/* Modal — z-[61] */}
+          <motion.div
+            key="intake-modal"
+            ref={modalRef}
+            initial={
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }
+            }
+            animate={
+              prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
+            }
+            exit={
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }
+            }
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className="fixed inset-0 z-[61] md:hidden flex flex-col"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Project intake form"
+          >
+            <IntakeChatContent
+              chatRef={chatRef}
+              messages={messages}
+              phase={phase}
+              stepIndex={stepIndex}
+              answers={answers}
+              summaryRef={summaryRef}
+              handleUserResponse={handleUserResponse}
+              onClose={onClose}
+              isModal
+            />
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function IntakeAgent() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answers>({});
-  const [summaryRef, setSummaryRef] = useState("");
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { messages, phase, stepIndex, answers, summaryRef, sessionId } = state;
+
   const [modalOpen, setModalOpen] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const desktopChatRef = useRef<HTMLDivElement>(null);
   const modalChatRef = useRef<HTMLDivElement>(null);
-  const hasRun = useRef(false);
-  const timeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const hasStartedDesktop = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const sessionIdRef = useRef(sessionId);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
   const prefersReducedMotion = useReducedMotion();
 
-  const trackedTimeout = useCallback((fn: () => void, ms: number) => {
-    const id = setTimeout(fn, ms);
-    timeoutIds.current.push(id);
-    return id;
-  }, []);
-
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      for (const ref of [desktopChatRef, modalChatRef]) {
-        if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
-      }
-    });
-  }, []);
-
-  // Resolver ref for async user input
-  const resolverRef = useRef<((val: string) => void) | null>(null);
-
-  const handleUserResponse = useCallback(
-    (val: string) => {
-      if (resolverRef.current) {
-        resolverRef.current(val);
-        resolverRef.current = null;
-      }
-    },
-    []
-  );
+  // Keep sessionIdRef in sync with reducer state
+  sessionIdRef.current = sessionId;
 
   // Pick a random greeting once per component mount
   const [greeting] = useState(() =>
     INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
   );
 
-  // Run the full agent flow
-  const runFlow = useCallback(async () => {
-    const currentAnswers: Answers = {};
-
-    for (let i = 0; i < STEPS.length; i++) {
-      const step = STEPS[i];
-
-      let msg = step.agentMsg;
-      if (step.id === "type") {
-        msg = greeting;
-      } else if (step.id === "contact") {
-        msg = `Last one, ${currentAnswers.name || "friend"}. Where should Hershey actually reach you?`;
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (desktopChatRef.current) {
+        desktopChatRef.current.scrollTop =
+          desktopChatRef.current.scrollHeight;
       }
-
-      await new Promise<void>((resolve) => {
-        setPhase({ kind: "typing" });
-        scrollToBottom();
-
-        const text = msg ?? "";
-        const delay = 600 + Math.min(text.length * 8, 1200);
-        trackedTimeout(() => {
-          setMessages((prev) => [...prev, { from: "agent", text }]);
-          setStepIndex(i + 1);
-          scrollToBottom();
-          resolve();
-        }, delay);
-      });
-
-      const userAnswer = await new Promise<string>((resolve) => {
-        if (step.options) {
-          setPhase({ kind: "options", stepId: step.id, options: step.options });
-        } else if (step.type) {
-          setPhase({
-            kind: "input",
-            stepId: step.id,
-            inputType: step.type,
-            placeholder: step.placeholder ?? "",
-          });
-        }
-        scrollToBottom();
-        resolverRef.current = resolve;
-      });
-
-      currentAnswers[step.id] = userAnswer;
-      setAnswers({ ...currentAnswers });
-      setMessages((prev) => [...prev, { from: "user", text: userAnswer }]);
-      scrollToBottom();
-
-      const contextReply = AGENT_RESPONSES[step.id]?.[userAnswer];
-      if (contextReply) {
-        await new Promise<void>((resolve) => {
-          setPhase({ kind: "typing" });
-          scrollToBottom();
-
-          const delay = 600 + Math.min(contextReply.length * 8, 1200);
-          trackedTimeout(() => {
-            setMessages((prev) => [...prev, { from: "agent", text: contextReply }]);
-            scrollToBottom();
-            resolve();
-          }, delay);
-        });
+      if (modalChatRef.current) {
+        modalChatRef.current.scrollTop = modalChatRef.current.scrollHeight;
       }
-    }
-
-    setStepIndex(STEPS.length);
-
-    await new Promise<void>((resolve) => {
-      setPhase({ kind: "typing" });
-      scrollToBottom();
-      trackedTimeout(() => {
-        const wrapMsg = "That's a wrap. Here's what I'm sending Hershey:";
-        setMessages((prev) => [...prev, { from: "agent", text: wrapMsg }]);
-        scrollToBottom();
-        resolve();
-      }, 1000);
     });
+  }, []);
 
-    const ref = generateRef();
-    setSummaryRef(ref);
-    setPhase({ kind: "summary", answers: currentAnswers, ref });
-    scrollToBottom();
-
-    try {
-      const res = await fetch("/api/intake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...currentAnswers, ref }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to send");
-      }
-    } catch {
-      await new Promise<void>((resolve) => {
-        trackedTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              from: "agent",
-              text: "Hmm, something went sideways sending that. No worries though \u2014 just email hello@hersheyg.com with what you told me and Hershey will pick it up.",
-            },
-          ]);
-          setSummaryRef("");
-          setPhase({ kind: "done" });
-          scrollToBottom();
-          resolve();
-        }, 800);
-      });
-      return;
-    }
-
-    trackedTimeout(() => {
-      const contact = currentAnswers.contact || "your inbox";
-      const closingMsg = `You'll get a confirmation at ${contact} shortly. Hershey will personally follow up within a few hours. Probably sooner. The man lives in his terminal.`;
-
-      setPhase({ kind: "typing" });
-      scrollToBottom();
-
-      trackedTimeout(() => {
-        setMessages((prev) => [...prev, { from: "agent", text: closingMsg }]);
-        setPhase({ kind: "done" });
-        scrollToBottom();
-      }, 1200);
-    }, 1200);
-  }, [scrollToBottom, trackedTimeout, greeting]);
-
-  // Start flow when the section enters viewport (desktop only)
-  useEffect(() => {
-    if (!isInView || hasRun.current) return;
-    // On mobile the terminal is hidden; don't auto-start until user opens modal
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-    if (!isDesktop) return;
-    hasRun.current = true;
-    runFlow();
-
-    return () => {
-      timeoutIds.current.forEach(clearTimeout);
-      timeoutIds.current = [];
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInView]);
-
-  // Listen for mobile modal open requests
-  useEffect(() => {
-    const handler = () => {
-      setModalOpen(true);
-      if (!hasRun.current) {
-        hasRun.current = true;
-        runFlow();
-      }
-    };
-    window.addEventListener("open-intake-modal", handler);
-    return () => window.removeEventListener("open-intake-modal", handler);
-  }, [runFlow]);
-
-  // Lock body scroll when modal is open (iOS Safari needs position:fixed)
-  useEffect(() => {
-    if (modalOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = "0";
-      document.body.style.right = "0";
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.left = "";
-        document.body.style.right = "";
-        document.body.style.overflow = "";
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [modalOpen]);
-
-  // Close modal on Escape
-  useEffect(() => {
-    if (!modalOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModalOpen(false);
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [modalOpen]);
-
-  // Auto-scroll on message/phase changes
+  // Auto-scroll on state changes
   useEffect(() => {
     scrollToBottom();
   }, [messages, phase, scrollToBottom]);
+
+  const handleUserResponse = useCallback(
+    (val: string) => {
+      const resolver = inputResolvers.get(sessionId);
+      if (resolver) {
+        inputResolvers.delete(sessionId);
+        resolver(val);
+      }
+    },
+    [sessionId]
+  );
+
+  const startSession = useCallback(() => {
+    // Abort any previous session
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    dispatch({ type: "START_SESSION" });
+
+    // Use ref to read the latest sessionId, avoiding stale-closure on double-tap.
+    // START_SESSION increments by 1 in the reducer, so the new ID is ref + 1.
+    const newSessionId = sessionIdRef.current + 1;
+
+    runConversation(dispatch, newSessionId, controller.signal, greeting).catch(
+      (err) => {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          // Session was intentionally aborted — no-op
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error("Intake conversation error:", err);
+      }
+    );
+  }, [greeting]);
+
+  const resetConversation = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    dispatch({ type: "RESET" });
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    resetConversation();
+    hasStartedDesktop.current = false;
+  }, [resetConversation]);
+
+  // Desktop: auto-start once when section scrolls into view
+  useEffect(() => {
+    if (!isInView || hasStartedDesktop.current) return;
+    hasStartedDesktop.current = true;
+    startSession();
+  }, [isInView, startSession]);
+
+  // Mobile: listen for open-intake-modal custom event
+  useEffect(() => {
+    const handler = () => {
+      setModalOpen(true);
+      startSession();
+    };
+    window.addEventListener("open-intake-modal", handler);
+    return () => window.removeEventListener("open-intake-modal", handler);
+  }, [startSession]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      inputResolvers.delete(sessionIdRef.current);
+    };
+  }, []);
 
   return (
     <>
@@ -569,7 +958,7 @@ export default function IntakeAgent() {
       <section className="py-16 sm:py-32 sm:pb-16" ref={sectionRef}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="w-full max-w-[900px] mx-auto">
-            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-sky-400 mb-5 sm:mb-6">
+            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-accent-lit mb-5 sm:mb-6">
               03 // CONTACT
             </p>
 
@@ -577,7 +966,7 @@ export default function IntakeAgent() {
               {COPY.contact.heading}
             </h2>
 
-            <p className="text-base sm:text-[17px] text-slate-400 leading-relaxed max-w-[540px] mb-8 sm:mb-10">
+            <p className="text-base sm:text-[17px] text-dim leading-relaxed max-w-[540px] mb-8 sm:mb-10">
               {COPY.contact.sub}
             </p>
 
@@ -601,23 +990,25 @@ export default function IntakeAgent() {
               <button
                 onClick={() => {
                   setModalOpen(true);
-                  if (!hasRun.current) {
-                    hasRun.current = true;
-                    runFlow();
-                  }
+                  startSession();
                 }}
-                className="w-full bg-[#162232] border border-[#1e3348] rounded-[14px] p-5 text-left group hover:border-sky-400/30 active:scale-[0.99] transition-[border-color,transform] duration-200"
+                className="w-full bg-surface border border-accent-lit/20 rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-7 h-7 rounded-md bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
-                    <span className="text-xs text-sky-400 font-mono font-semibold">H</span>
+                  <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center">
+                    <span className="text-xs text-accent-lit font-mono font-semibold">
+                      H
+                    </span>
                   </div>
-                  <span className="font-mono text-[13px] text-slate-200">Intake Agent</span>
+                  <span className="font-mono text-[13px] text-text">
+                    Intake Agent
+                  </span>
                 </div>
-                <p className="font-mono text-[13px] text-slate-400 leading-relaxed">
-                  Tap to start a conversation. I&apos;ll ask a few quick questions so Hershey knows what you need.
+                <p className="font-mono text-[13px] text-dim leading-relaxed">
+                  Tap to start a conversation. I&apos;ll ask a few quick
+                  questions so Hershey knows what you need.
                 </p>
-                <span className="inline-block mt-3 font-mono text-xs text-sky-400 group-hover:translate-x-1 transition-transform">
+                <span className="inline-block mt-3 font-mono text-xs text-accent-lit group-hover:translate-x-1 transition-transform">
                   Open chat →
                 </span>
               </button>
@@ -625,13 +1016,13 @@ export default function IntakeAgent() {
 
             {/* Footer */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 font-mono text-[13px] text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="flex items-center gap-2 font-mono text-[13px] text-dim">
+                <span className="w-1.5 h-1.5 rounded-full bg-term-success animate-pulse" />
                 Typical reply time: under 24h
               </div>
               <a
                 href="mailto:hello@hersheyg.com?subject=Project%20Inquiry"
-                className="font-mono text-[13px] text-slate-400 hover:text-sky-400 transition-colors"
+                className="font-mono text-[13px] text-dim hover:text-accent-lit transition-colors"
               >
                 hello@hersheyg.com →
               </a>
@@ -640,45 +1031,19 @@ export default function IntakeAgent() {
         </div>
       </section>
 
-      {/* Fullscreen mobile modal */}
-      <AnimatePresence>
-        {modalOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[61] bg-black/60 md:hidden"
-              onClick={() => setModalOpen(false)}
-            />
-            <motion.div
-              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
-              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="fixed inset-0 z-[62] md:hidden"
-              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Project intake form"
-            >
-              <IntakeChatContent
-                chatRef={modalChatRef}
-                messages={messages}
-                phase={phase}
-                stepIndex={stepIndex}
-                answers={answers}
-                summaryRef={summaryRef}
-                handleUserResponse={handleUserResponse}
-                onClose={() => setModalOpen(false)}
-                isModal
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Fullscreen mobile modal — rendered as portal (AnimatePresence lives inside the portal) */}
+      <IntakeModal
+        isOpen={modalOpen}
+        chatRef={modalChatRef}
+        messages={messages}
+        phase={phase}
+        stepIndex={stepIndex}
+        answers={answers}
+        summaryRef={summaryRef}
+        handleUserResponse={handleUserResponse}
+        onClose={closeModal}
+        prefersReducedMotion={prefersReducedMotion ?? false}
+      />
     </>
   );
 }

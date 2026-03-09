@@ -432,7 +432,7 @@ function AgentMessage({
           H
         </span>
       </div>
-      <div className="bg-bg/60 border border-line rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+      <div className="bg-bg/60 border border-accent-lit/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         {isTyping ? (
           <TypingDots />
         ) : (
@@ -448,7 +448,7 @@ function AgentMessage({
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-accent-lit/10 border border-accent-lit/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+      <div className="bg-accent-lit/10 border border-accent-lit/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-accent-lit font-mono">
           {text}
         </p>
@@ -470,7 +470,7 @@ function OptionButtons({
         <button
           key={opt}
           onClick={() => onSelect(opt)}
-          className="font-mono text-xs px-3.5 py-2 border border-line rounded-lg
+          className="font-mono text-xs px-3.5 py-2 border border-accent-lit/20 rounded-lg
                      text-body hover:border-accent-lit hover:text-accent-lit
                      hover:bg-accent-lit/10 hover:-translate-y-px transition-all duration-200
                      active:scale-[0.97]"
@@ -513,7 +513,7 @@ function TextInput({
   };
 
   const sharedClasses =
-    "font-mono text-[13px] flex-1 px-4 py-3 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
+    "font-mono text-[13px] flex-1 px-4 py-3 border border-accent-lit/20 rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
 
   return (
     <div className="flex gap-2 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
@@ -572,7 +572,7 @@ function SummaryCard({
   ];
 
   return (
-    <div className="bg-bg/60 border border-line rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
+    <div className="bg-bg/60 border border-accent-lit/15 rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
       <div className="flex items-center gap-1.5 text-xs text-term-success mb-3 font-mono">
         <svg
           width="14"
@@ -589,7 +589,7 @@ function SummaryCard({
       <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr] gap-x-3 sm:gap-x-4 gap-y-2 text-xs font-mono">
         {rows.map((row, i) =>
           row === "divider" ? (
-            <div key={i} className="col-span-2 h-px bg-line my-1" />
+            <div key={i} className="col-span-2 h-px bg-accent-lit/10 my-1" />
           ) : (
             <div key={i} className="contents">
               <span className="text-body">{row[0]}</span>
@@ -638,11 +638,11 @@ function IntakeChatContent({
       className={`bg-surface ${
         isModal
           ? "flex flex-col h-full"
-          : "border border-accent/40 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
+          : "border border-accent-lit/20 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-accent/40 bg-bg/30 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-accent-lit/15 bg-bg/30 flex-shrink-0">
         {!isModal && (
           <>
             <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
@@ -662,7 +662,7 @@ function IntakeChatContent({
         </span>
         {stepIndex > 0 && (
           <div className="flex items-center gap-2">
-            <div className="w-[80px] sm:w-[100px] h-[3px] bg-accent/40 rounded-full overflow-hidden">
+            <div className="w-[80px] sm:w-[100px] h-[3px] bg-accent-lit/15 rounded-full overflow-hidden">
               <div
                 className="h-full bg-accent-lit rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
@@ -992,7 +992,7 @@ export default function IntakeAgent() {
                   setModalOpen(true);
                   startSession();
                 }}
-                className="w-full bg-surface border border-accent/40 rounded-[14px] p-5 text-left group hover:border-accent-lit/30 active:scale-[0.99] transition-[color,border-color,transform]"
+                className="w-full bg-surface border border-accent-lit/20 rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
               >
                 <div className="flex items-center gap-2.5 mb-3">
                   <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { COPY, HERO_VARIANTS } from "@/lib/constants";
 import TextScramble from "@/components/TextScramble";
@@ -12,10 +12,12 @@ export default function Hero() {
   const prefersReducedMotion = useReducedMotion();
   const noMotion = !!prefersReducedMotion;
 
-  // Pick a random hero variant once on mount (lazy initializer — no flicker)
-  const [variant] = useState(() =>
-    HERO_VARIANTS[Math.floor(Math.random() * HERO_VARIANTS.length)]
-  );
+  // Deterministic initial value avoids hydration mismatch (#418).
+  // useEffect swaps in a random variant on mount; TextScramble masks the change.
+  const [variant, setVariant] = useState(HERO_VARIANTS[0]);
+  useEffect(() => {
+    setVariant(HERO_VARIANTS[Math.floor(Math.random() * HERO_VARIANTS.length)]);
+  }, []);
 
   return (
     <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-24 pb-10 lg:pt-0 lg:pb-0 px-6">

@@ -23,6 +23,7 @@ interface ScrambleRevealProps {
 
 export default function ScrambleReveal({ text, delay = 0, className, trigger = true }: ScrambleRevealProps) {
   const ref = useRef<HTMLSpanElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prefersReducedMotion = useReducedMotion();
   const [display, setDisplay] = useState(() =>
     prefersReducedMotion ? text : scramble(text)
@@ -34,7 +35,7 @@ export default function ScrambleReveal({ text, delay = 0, className, trigger = t
 
     const timeout = setTimeout(() => {
       let frame = 0;
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         frame++;
         const chars = text.split("").map((char, i) => {
           if (char === " ") return " ";
@@ -45,16 +46,18 @@ export default function ScrambleReveal({ text, delay = 0, className, trigger = t
         setDisplay(chars.join(""));
 
         if (frame >= TOTAL_FRAMES) {
-          clearInterval(interval);
+          clearInterval(intervalRef.current!);
+          intervalRef.current = null;
           setDisplay(text);
           setRevealed(true);
         }
       }, FRAME_MS);
-
-      return () => clearInterval(interval);
     }, delay);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [trigger, prefersReducedMotion, text, delay, revealed]);
 
   return (

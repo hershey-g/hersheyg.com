@@ -74,6 +74,17 @@ export default function DotGrid({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const pendingRaf = rafRef;
+
+    const scheduleFrame = () => {
+      if (!pendingRaf.current) {
+        pendingRaf.current = requestAnimationFrame(() => {
+          pendingRaf.current = 0;
+          draw(ctx, window.innerWidth, window.innerHeight);
+        });
+      }
+    };
+
     const handleResize = () => {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * dpr;
@@ -81,59 +92,29 @@ export default function DotGrid({
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      scheduleFrame();
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
+      scheduleFrame();
     };
 
     handleResize();
     window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
 
     if (!prefersReducedMotion) {
       window.addEventListener("mousemove", handleMouseMove);
     }
 
-    let paused = false;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        paused = true;
-        if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = 0;
-        }
-      } else {
-        paused = false;
-        if (!prefersReducedMotion) {
-          rafRef.current = requestAnimationFrame(loop);
-        }
-      }
-    };
-
-    const loop = () => {
-      if (paused) return;
-      draw(ctx, window.innerWidth, window.innerHeight);
-
-      if (!prefersReducedMotion) {
-        rafRef.current = requestAnimationFrame(loop);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    if (prefersReducedMotion) {
-      draw(ctx, window.innerWidth, window.innerHeight);
-    } else {
-      rafRef.current = requestAnimationFrame(loop);
-    }
-
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
+      if (pendingRaf.current) {
+        cancelAnimationFrame(pendingRaf.current);
+        pendingRaf.current = 0;
       }
     };
   }, [draw, prefersReducedMotion]);

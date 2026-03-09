@@ -60,9 +60,9 @@ export default function Terminal() {
       {/* Title bar */}
       <div className="flex items-center px-4 py-3 border-b border-line">
         <div className="flex gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#ef4444]/60" />
-          <span className="h-3 w-3 rounded-full bg-[#eab308]/60" />
-          <span className="h-3 w-3 rounded-full bg-[#22c55e]/60" />
+          <span className="h-3 w-3 rounded-full bg-term-red/60" />
+          <span className="h-3 w-3 rounded-full bg-term-yellow/60" />
+          <span className="h-3 w-3 rounded-full bg-term-green/60" />
         </div>
         <span className="flex-1 text-center font-mono text-xs text-dim">
           {COPY.terminal.title}
@@ -82,9 +82,9 @@ export default function Terminal() {
           if (line.type === "cursor") {
             return (
               <div key={i}>
-                <span className="text-[#22c55e]">$</span>{" "}
+                <span className="text-term-green">$</span>{" "}
                 <span
-                  className="inline-block w-2 h-4 bg-[#22c55e] align-middle"
+                  className="inline-block w-2 h-4 bg-term-green align-middle"
                   style={{ animation: "blink 1s step-end infinite" }}
                 />
               </div>
@@ -96,7 +96,7 @@ export default function Terminal() {
             const afterPrompt = text.startsWith("$ ") ? text.slice(2) : text;
             return (
               <div key={i}>
-                <span className="text-[#22c55e]">$</span>{" "}
+                <span className="text-term-green">$</span>{" "}
                 <span className="text-text">{afterPrompt}</span>
               </div>
             );
@@ -118,7 +118,7 @@ export default function Terminal() {
               color: string;
             };
             const valueColor =
-              kv.color === "orange" ? "text-[#f59e42]" : "text-[#34d399]";
+              kv.color === "orange" ? "text-term-orange" : "text-term-success";
             const padding = " ".repeat(Math.max(1, 14 - kv.key.length));
             return (
               <div key={i}>
@@ -139,7 +139,7 @@ export default function Terminal() {
 
           if (line.type === "success") {
             return (
-              <div key={i} className="text-[#34d399]">
+              <div key={i} className="text-term-success">
                 {(line as { type: "success"; text: string }).text}
               </div>
             );

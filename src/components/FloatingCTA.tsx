@@ -10,13 +10,16 @@ export default function FloatingCTA() {
     const contact = document.getElementById("contact");
     if (!hero || !contact) return;
 
+    const visibilityMap = new Map<Element, boolean>();
+
     const observer = new IntersectionObserver(
-      () => {
-        const heroRect = hero.getBoundingClientRect();
-        const contactRect = contact.getBoundingClientRect();
-        const heroOut = heroRect.bottom < 0;
-        const contactOut = contactRect.top > window.innerHeight;
-        setVisible(heroOut && contactOut);
+      (entries) => {
+        for (const entry of entries) {
+          visibilityMap.set(entry.target, entry.isIntersecting);
+        }
+        const heroVisible = visibilityMap.get(hero) ?? true;
+        const contactVisible = visibilityMap.get(contact) ?? true;
+        setVisible(!heroVisible && !contactVisible);
       },
       { threshold: 0 }
     );

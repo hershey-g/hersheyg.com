@@ -5,7 +5,6 @@ import {
   useRef,
   useCallback,
   useEffect,
-  useReducer,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
@@ -15,294 +14,10 @@ import {
   useInView,
   useReducedMotion,
 } from "framer-motion";
-import {
-  STEPS,
-  AGENT_RESPONSES,
-  INTAKE_GREETINGS,
-} from "./intake-agent-constants";
+import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { INTAKE_GREETINGS } from "@/lib/intake-system-prompt";
 import { COPY } from "@/lib/constants";
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Types
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-interface Message {
-  from: "agent" | "user";
-  text: string;
-}
-
-type Answers = Record<string, string>;
-
-type Phase =
-  | { kind: "idle" }
-  | { kind: "typing" }
-  | { kind: "options"; stepId: string; options: string[] }
-  | {
-      kind: "input";
-      stepId: string;
-      inputType: "input" | "textarea";
-      placeholder: string;
-    }
-  | { kind: "summary"; answers: Answers; ref: string }
-  | { kind: "done" };
-
-interface ConversationState {
-  sessionId: number;
-  messages: Message[];
-  phase: Phase;
-  stepIndex: number;
-  answers: Answers;
-  summaryRef: string;
-  status: "idle" | "running" | "done";
-}
-
-type Action =
-  | { type: "START_SESSION" }
-  | { type: "ADD_MESSAGE"; sessionId: number; message: Message }
-  | { type: "SET_PHASE"; sessionId: number; phase: Phase }
-  | { type: "SET_STEP_INDEX"; sessionId: number; index: number }
-  | { type: "SET_ANSWERS"; sessionId: number; answers: Answers }
-  | { type: "SET_SUMMARY_REF"; sessionId: number; ref: string }
-  | { type: "SET_STATUS"; sessionId: number; status: "idle" | "running" | "done" }
-  | { type: "RESET" };
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Reducer
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const initialState: ConversationState = {
-  sessionId: 0,
-  messages: [],
-  phase: { kind: "idle" },
-  stepIndex: 0,
-  answers: {},
-  summaryRef: "",
-  status: "idle",
-};
-
-function reducer(state: ConversationState, action: Action): ConversationState {
-  switch (action.type) {
-    case "START_SESSION":
-      return {
-        ...initialState,
-        sessionId: state.sessionId + 1,
-        status: "running",
-      };
-    case "RESET":
-      return { ...initialState, sessionId: state.sessionId };
-    default:
-      break;
-  }
-
-  // All remaining actions carry sessionId — ignore stale dispatches
-  if ("sessionId" in action && action.sessionId !== state.sessionId) {
-    return state;
-  }
-
-  switch (action.type) {
-    case "ADD_MESSAGE":
-      return { ...state, messages: [...state.messages, action.message] };
-    case "SET_PHASE":
-      return { ...state, phase: action.phase };
-    case "SET_STEP_INDEX":
-      return { ...state, stepIndex: action.index };
-    case "SET_ANSWERS":
-      return { ...state, answers: action.answers };
-    case "SET_SUMMARY_REF":
-      return { ...state, summaryRef: action.ref };
-    case "SET_STATUS":
-      return { ...state, status: action.status };
-    default:
-      return state;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Async helpers
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function delay(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException("Aborted", "AbortError"));
-      return;
-    }
-    const id = setTimeout(resolve, ms);
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(id);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true }
-    );
-  });
-}
-
-/** Resolver map keyed by session ID. */
-const inputResolvers = new Map<number, (val: string) => void>();
-
-function waitForInput(sessionId: number, signal: AbortSignal): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException("Aborted", "AbortError"));
-      return;
-    }
-    inputResolvers.set(sessionId, resolve);
-    signal.addEventListener(
-      "abort",
-      () => {
-        inputResolvers.delete(sessionId);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true }
-    );
-  });
-}
-
-function generateRef() {
-  return "#PRJ-" + Math.floor(1000 + Math.random() * 9000);
-}
-
-function truncate(str: string, max: number) {
-  return str.length > max ? str.slice(0, max) + "..." : str;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   runConversation — standalone async function
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-async function runConversation(
-  dispatch: React.Dispatch<Action>,
-  sessionId: number,
-  signal: AbortSignal,
-  greeting: string
-) {
-  /** Dispatch with sessionId auto-injected. Accepts any action payload sans sessionId. */
-  const d = (
-    action:
-      | { type: "ADD_MESSAGE"; message: Message }
-      | { type: "SET_PHASE"; phase: Phase }
-      | { type: "SET_STEP_INDEX"; index: number }
-      | { type: "SET_ANSWERS"; answers: Answers }
-      | { type: "SET_SUMMARY_REF"; ref: string }
-      | { type: "SET_STATUS"; status: "idle" | "running" | "done" }
-  ) => {
-    dispatch({ ...action, sessionId } as Action);
-  };
-
-  const currentAnswers: Answers = {};
-
-  for (let i = 0; i < STEPS.length; i++) {
-    const step = STEPS[i];
-
-    let msg = step.agentMsg;
-    if (step.id === "type") {
-      msg = greeting;
-    } else if (step.id === "contact") {
-      msg = `Last one, ${currentAnswers.name || "friend"}. Where should Hershey actually reach you?`;
-    }
-
-    // Show typing indicator
-    d({ type: "SET_PHASE", phase: { kind: "typing" } });
-
-    const text = msg ?? "";
-    const typingDelay = 600 + Math.min(text.length * 8, 1200);
-    await delay(typingDelay, signal);
-
-    // Add agent message
-    d({ type: "ADD_MESSAGE", message: { from: "agent", text } });
-    d({ type: "SET_STEP_INDEX", index: i + 1 });
-
-    // Show input UI
-    if (step.options) {
-      d({
-        type: "SET_PHASE",
-        phase: { kind: "options", stepId: step.id, options: step.options },
-      });
-    } else if (step.type) {
-      d({
-        type: "SET_PHASE",
-        phase: {
-          kind: "input",
-          stepId: step.id,
-          inputType: step.type,
-          placeholder: step.placeholder ?? "",
-        },
-      });
-    }
-
-    // Wait for user input
-    const userAnswer = await waitForInput(sessionId, signal);
-
-    currentAnswers[step.id] = userAnswer;
-    d({ type: "SET_ANSWERS", answers: { ...currentAnswers } });
-    d({ type: "ADD_MESSAGE", message: { from: "user", text: userAnswer } });
-
-    // Contextual reply
-    const contextReply = AGENT_RESPONSES[step.id]?.[userAnswer];
-    if (contextReply) {
-      d({ type: "SET_PHASE", phase: { kind: "typing" } });
-      const contextDelay = 600 + Math.min(contextReply.length * 8, 1200);
-      await delay(contextDelay, signal);
-      d({
-        type: "ADD_MESSAGE",
-        message: { from: "agent", text: contextReply },
-      });
-    }
-  }
-
-  // Wrap-up
-  d({ type: "SET_STEP_INDEX", index: STEPS.length });
-  d({ type: "SET_PHASE", phase: { kind: "typing" } });
-  await delay(1000, signal);
-
-  const wrapMsg = "That's a wrap. Here's what I'm sending Hershey:";
-  d({ type: "ADD_MESSAGE", message: { from: "agent", text: wrapMsg } });
-
-  const ref = generateRef();
-  d({ type: "SET_SUMMARY_REF", ref });
-  d({
-    type: "SET_PHASE",
-    phase: { kind: "summary", answers: currentAnswers, ref },
-  });
-
-  // Submit to API
-  try {
-    const res = await fetch("/api/intake", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...currentAnswers, ref }),
-      signal,
-    });
-
-    if (!res.ok) throw new Error("Failed to send");
-
-    await delay(1200, signal);
-    d({ type: "SET_PHASE", phase: { kind: "typing" } });
-    await delay(1200, signal);
-
-    const contact = currentAnswers.contact || "your inbox";
-    const closingMsg = `You'll get a confirmation at ${contact} shortly. Hershey will personally follow up within a few hours. Probably sooner. The man lives in his terminal.`;
-    d({ type: "ADD_MESSAGE", message: { from: "agent", text: closingMsg } });
-    d({ type: "SET_PHASE", phase: { kind: "done" } });
-    d({ type: "SET_STATUS", status: "done" });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") throw err;
-
-    await delay(800, signal);
-    d({
-      type: "ADD_MESSAGE",
-      message: {
-        from: "agent",
-        text: "Hmm, something went sideways sending that. No worries though \u2014 just email hello@hersheyg.com with what you told me and Hershey will pick it up.",
-      },
-    });
-    d({ type: "SET_SUMMARY_REF", ref: "" });
-    d({ type: "SET_PHASE", phase: { kind: "done" } });
-    d({ type: "SET_STATUS", status: "done" });
-  }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Hooks: useFocusTrap, useScrollLock
@@ -318,13 +33,11 @@ function useFocusTrap(
   useEffect(() => {
     if (!isActive) return;
 
-    // Save currently focused element
     previousFocusRef.current = document.activeElement as HTMLElement | null;
 
     const container = containerRef.current;
     if (!container) return;
 
-    // Focus first focusable element
     const focusFirst = () => {
       const focusable = container.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -332,7 +45,6 @@ function useFocusTrap(
       if (focusable.length > 0) focusable[0].focus();
     };
 
-    // Small delay to let animation start
     const timer = setTimeout(focusFirst, 50);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -370,7 +82,6 @@ function useFocusTrap(
     return () => {
       clearTimeout(timer);
       document.removeEventListener("keydown", handleKeyDown);
-      // Restore focus
       previousFocusRef.current?.focus();
     };
   }, [isActive, containerRef, onEscape]);
@@ -407,7 +118,7 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-dim"
+          className="w-1.5 h-1.5 rounded-full bg-term-green/50"
           style={{
             animation: "intake-bounce 1.2s infinite",
             animationDelay: `${i * 150}ms`,
@@ -419,25 +130,37 @@ function TypingDots() {
 }
 
 function AgentMessage({
-  text,
-  isTyping,
+  message,
+  isStreaming,
 }: {
-  text?: string;
-  isTyping?: boolean;
+  message?: UIMessage;
+  isStreaming?: boolean;
 }) {
+  const hasText = message?.parts.some((p) => p.type === "text" && p.text);
+
   return (
     <div className="flex gap-2.5 items-start mb-4 intake-animate-in">
-      <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <span className="text-xs text-accent-lit font-mono font-semibold">
+      <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-xs text-term-green font-mono font-semibold">
           H
         </span>
       </div>
-      <div className="bg-bg/60 border border-accent-lit/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
-        {isTyping ? (
+      <div
+        className="bg-bg/60 border border-term-green/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]"
+        style={{ minHeight: "2.5rem", overflowWrap: "break-word" }}
+      >
+        {isStreaming && !hasText ? (
           <TypingDots />
         ) : (
-          <p className="text-[13px] leading-relaxed text-white/90 font-mono whitespace-pre-line">
-            {text}
+          <p className="text-[13px] leading-relaxed text-term-green-soft font-mono whitespace-pre-line">
+            {message?.parts.map((part, i) => {
+              if (part.type === "text") return <span key={i}>{part.text}</span>;
+              // Hide tool invocations from UI
+              return null;
+            })}
+            {isStreaming && hasText && (
+              <span className="inline-block w-[6px] h-[14px] bg-term-green/70 ml-0.5 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+            )}
           </p>
         )}
       </div>
@@ -445,159 +168,62 @@ function AgentMessage({
   );
 }
 
-function UserMessage({ text }: { text: string }) {
+function UserMessage({ message }: { message: UIMessage }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
       <div className="bg-accent-lit/10 border border-accent-lit/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-accent-lit font-mono">
-          {text}
+          {message.parts.map((part, i) => {
+            if (part.type === "text") return <span key={i}>{part.text}</span>;
+            return null;
+          })}
         </p>
       </div>
     </div>
   );
 }
 
-function OptionButtons({
-  options,
-  onSelect,
-}: {
-  options: string[];
-  onSelect: (opt: string) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2.5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          onClick={() => onSelect(opt)}
-          className="font-mono text-xs px-3.5 py-2 border border-accent-lit/20 rounded-lg
-                     text-body hover:border-accent-lit hover:text-accent-lit
-                     hover:bg-accent-lit/10 hover:-translate-y-px transition-all duration-200
-                     active:scale-[0.97]"
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function TextInput({
-  inputType,
-  placeholder,
+function ChatInput({
+  input,
+  setInput,
   onSubmit,
+  isStreaming,
 }: {
-  inputType: "input" | "textarea";
-  placeholder: string;
-  onSubmit: (val: string) => void;
+  input: string;
+  setInput: (val: string) => void;
+  onSubmit: () => void;
+  isStreaming: boolean;
 }) {
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleSubmit = () => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    onSubmit(trimmed);
-  };
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && value.trim()) {
+    if (e.key === "Enter" && !e.shiftKey && input.trim() && !isStreaming) {
       e.preventDefault();
-      handleSubmit();
+      onSubmit();
     }
   };
 
-  const sharedClasses =
-    "font-mono text-[13px] flex-1 px-4 py-3 border border-accent-lit/20 rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit transition-colors placeholder:text-dim";
-
   return (
-    <div className="flex gap-2 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
-      {inputType === "textarea" ? (
-        <textarea
-          ref={inputRef as RefObject<HTMLTextAreaElement>}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={`${sharedClasses} min-h-[72px] resize-none max-h-[120px] leading-relaxed`}
-        />
-      ) : (
-        <input
-          ref={inputRef as RefObject<HTMLInputElement>}
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={sharedClasses}
-        />
-      )}
+    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-term-green/15 bg-bg/30 flex-shrink-0">
+      <input
+        ref={inputRef}
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Type a message..."
+        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-term-green/20 rounded-lg bg-bg/60 text-text outline-none focus:border-term-green/50 transition-colors placeholder:text-dim"
+      />
       <button
-        onClick={handleSubmit}
-        disabled={!value.trim()}
-        className="font-mono text-xs px-4 py-2.5 border border-accent-lit rounded-lg
-                   bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
-                   disabled:opacity-25 disabled:cursor-not-allowed self-end"
+        onClick={onSubmit}
+        disabled={!input.trim() || isStreaming}
+        className="font-mono text-xs px-4 py-2.5 border border-term-green/40 rounded-lg
+                   bg-term-green/10 text-term-green hover:bg-term-green/20 transition-all
+                   disabled:opacity-25 disabled:cursor-not-allowed"
+        aria-label="Send message"
       >
         →
       </button>
-    </div>
-  );
-}
-
-function SummaryCard({
-  answers,
-  refId,
-}: {
-  answers: Answers;
-  refId: string;
-}) {
-  const rows: Array<[string, string] | "divider"> = [
-    ["Project", answers.type ?? "\u2014"],
-    [
-      "Description",
-      answers.describe ? truncate(answers.describe, 80) : "\u2014",
-    ],
-    "divider",
-    ["Timeline", answers.timeline ?? "\u2014"],
-    ["Budget", answers.budget ?? "\u2014"],
-    "divider",
-    ["Name", answers.name ?? "\u2014"],
-    ["Contact", answers.contact ?? "\u2014"],
-  ];
-
-  return (
-    <div className="bg-bg/60 border border-accent-lit/15 rounded-xl p-4 px-4 sm:px-5 ml-0 sm:ml-[38px] mt-4 intake-animate-in">
-      <div className="flex items-center gap-1.5 text-xs text-term-success mb-3 font-mono">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        Brief sent · ref {refId}
-      </div>
-      <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr] gap-x-3 sm:gap-x-4 gap-y-2 text-xs font-mono">
-        {rows.map((row, i) =>
-          row === "divider" ? (
-            <div key={i} className="col-span-2 h-px bg-accent-lit/10 my-1" />
-          ) : (
-            <div key={i} className="contents">
-              <span className="text-body">{row[0]}</span>
-              <span className="text-white/90 break-words">{row[1]}</span>
-            </div>
-          )
-        )}
-      </div>
     </div>
   );
 }
@@ -609,40 +235,36 @@ function SummaryCard({
 function IntakeChatContent({
   chatRef,
   messages,
-  phase,
-  stepIndex,
-  answers,
-  summaryRef,
-  handleUserResponse,
+  status,
+  input,
+  setInput,
+  onSendMessage,
   onClose,
   isModal,
+  error,
 }: {
   chatRef: RefObject<HTMLDivElement | null>;
-  messages: Message[];
-  phase: Phase;
-  stepIndex: number;
-  answers: Answers;
-  summaryRef: string;
-  handleUserResponse: (val: string) => void;
+  messages: UIMessage[];
+  status: "submitted" | "streaming" | "ready" | "error";
+  input: string;
+  setInput: (val: string) => void;
+  onSendMessage: () => void;
   onClose?: () => void;
   isModal?: boolean;
+  error?: Error;
 }) {
-  const isDone = phase.kind === "done" || phase.kind === "summary";
-  const displayStep = isDone
-    ? STEPS.length
-    : Math.min(stepIndex + 1, STEPS.length);
-  const progress = Math.round((displayStep / STEPS.length) * 100);
+  const isActive = status === "streaming" || status === "submitted";
 
   return (
     <div
       className={`bg-surface ${
         isModal
           ? "flex flex-col h-full"
-          : "border border-accent-lit/20 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
+          : "border border-term-green/20 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-accent-lit/15 bg-bg/30 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-term-green/15 bg-bg/30 flex-shrink-0">
         {!isModal && (
           <>
             <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
@@ -651,8 +273,8 @@ function IntakeChatContent({
           </>
         )}
         {isModal && (
-          <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs text-accent-lit font-mono font-semibold">
+          <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs text-term-green font-mono font-semibold">
               H
             </span>
           </div>
@@ -660,18 +282,8 @@ function IntakeChatContent({
         <span className="font-mono text-xs text-dim ml-1 sm:ml-2 flex-1">
           {isModal ? "Intake Agent" : "~/intake-agent"}
         </span>
-        {stepIndex > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="w-[80px] sm:w-[100px] h-[3px] bg-accent-lit/15 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent-lit rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="font-mono text-[11px] text-dim">
-              {displayStep}/{STEPS.length}
-            </span>
-          </div>
+        {isActive && (
+          <span className="w-2 h-2 rounded-full bg-term-green animate-pulse" />
         )}
         {isModal && onClose && (
           <button
@@ -695,47 +307,72 @@ function IntakeChatContent({
         )}
       </div>
 
-      {/* Chat body — flex-1 with min-h-0 for scroll isolation */}
+      {/* Chat body */}
       <div
         ref={chatRef}
-        className={`p-5 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0`}
+        className="p-5 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
       >
-        {messages.map((msg, i) =>
-          msg.from === "agent" ? (
-            <AgentMessage key={i} text={msg.text} />
-          ) : (
-            <UserMessage key={i} text={msg.text} />
-          )
+        {messages.map((msg) => {
+          // Skip messages with no visible content (pure tool invocations)
+          const hasVisibleContent = msg.parts.some(
+            (p) => p.type === "text" && p.text
+          );
+          if (!hasVisibleContent) return null;
+
+          if (msg.role === "assistant") {
+            const isLastMsg = msg === messages[messages.length - 1];
+            return (
+              <AgentMessage
+                key={msg.id}
+                message={msg}
+                isStreaming={isLastMsg && isActive}
+              />
+            );
+          }
+          if (msg.role === "user") {
+            return <UserMessage key={msg.id} message={msg} />;
+          }
+          return null;
+        })}
+
+        {/* Typing dots when waiting for first text chunk */}
+        {isActive &&
+          (messages.length === 0 ||
+            messages[messages.length - 1]?.role === "user") && (
+            <AgentMessage isStreaming />
+          )}
+
+        {/* Error fallback */}
+        {(status === "error" || error) && (
+          <div className="flex gap-2.5 items-start mb-4 intake-animate-in">
+            <div className="w-7 h-7 rounded-md bg-term-red/10 border border-term-red/25 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs text-term-red font-mono font-semibold">!</span>
+            </div>
+            <div className="bg-bg/60 border border-term-red/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+              <p className="text-[13px] leading-relaxed text-term-red/80 font-mono whitespace-pre-line">
+                Something went sideways. No worries — just email{" "}
+                <a href="mailto:hello@hersheyg.com" className="underline text-term-red hover:text-term-red/90">
+                  hello@hersheyg.com
+                </a>{" "}
+                and Hershey will pick it up.
+              </p>
+            </div>
+          </div>
         )}
-
-        {phase.kind === "typing" && <AgentMessage isTyping />}
-
-        {phase.kind === "options" && (
-          <OptionButtons
-            options={phase.options}
-            onSelect={handleUserResponse}
-          />
-        )}
-
-        {phase.kind === "input" && (
-          <TextInput
-            inputType={phase.inputType}
-            placeholder={phase.placeholder}
-            onSubmit={handleUserResponse}
-          />
-        )}
-
-        {(phase.kind === "summary" || phase.kind === "done") &&
-          summaryRef && <SummaryCard answers={answers} refId={summaryRef} />}
       </div>
 
-      {/* Input area bottom spacer — shrink-0 to keep it pinned */}
-      <div className="flex-shrink-0">
-        {/* Safe area spacer for modal on notched devices */}
-        {isModal && (
-          <div className="pb-[env(safe-area-inset-bottom,0px)]" />
-        )}
-      </div>
+      {/* Input area */}
+      <ChatInput
+        input={input}
+        setInput={setInput}
+        onSubmit={onSendMessage}
+        isStreaming={isActive}
+      />
+
+      {/* Safe area spacer for modal on notched devices */}
+      {isModal && (
+        <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom,0px)]" />
+      )}
     </div>
   );
 }
@@ -748,29 +385,31 @@ function IntakeModal({
   isOpen,
   chatRef,
   messages,
-  phase,
-  stepIndex,
-  answers,
-  summaryRef,
-  handleUserResponse,
+  status,
+  input,
+  setInput,
+  onSendMessage,
   onClose,
   prefersReducedMotion,
+  error,
 }: {
   isOpen: boolean;
   chatRef: RefObject<HTMLDivElement | null>;
-  messages: Message[];
-  phase: Phase;
-  stepIndex: number;
-  answers: Answers;
-  summaryRef: string;
-  handleUserResponse: (val: string) => void;
+  messages: UIMessage[];
+  status: "submitted" | "streaming" | "ready" | "error";
+  input: string;
+  setInput: (val: string) => void;
+  onSendMessage: () => void;
   onClose: () => void;
   prefersReducedMotion: boolean | null;
+  error?: Error;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useFocusTrap(modalRef, isOpen, onClose);
   useScrollLock(isOpen);
@@ -781,7 +420,7 @@ function IntakeModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop — z-[60] */}
+          {/* Backdrop */}
           <motion.div
             key="intake-backdrop"
             initial={{ opacity: 0 }}
@@ -791,7 +430,7 @@ function IntakeModal({
             className="fixed inset-0 z-[60] bg-black/60 md:hidden"
             onClick={onClose}
           />
-          {/* Modal — z-[61] */}
+          {/* Modal */}
           <motion.div
             key="intake-modal"
             ref={modalRef}
@@ -814,13 +453,13 @@ function IntakeModal({
             <IntakeChatContent
               chatRef={chatRef}
               messages={messages}
-              phase={phase}
-              stepIndex={stepIndex}
-              answers={answers}
-              summaryRef={summaryRef}
-              handleUserResponse={handleUserResponse}
+              status={status}
+              input={input}
+              setInput={setInput}
+              onSendMessage={onSendMessage}
               onClose={onClose}
               isModal
+              error={error}
             />
           </motion.div>
         </>
@@ -835,122 +474,109 @@ function IntakeModal({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function IntakeAgent() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const { messages, phase, stepIndex, answers, summaryRef, sessionId } = state;
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const desktopChatRef = useRef<HTMLDivElement>(null);
-  const modalChatRef = useRef<HTMLDivElement>(null);
-  const hasStartedDesktop = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const sessionIdRef = useRef(sessionId);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
-  const prefersReducedMotion = useReducedMotion();
-
-  // Keep sessionIdRef in sync with reducer state
-  sessionIdRef.current = sessionId;
-
-  // Pick a random greeting once per component mount
+  // Static initial greeting — no API call needed
   const [greeting] = useState(() =>
     INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
   );
 
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      if (desktopChatRef.current) {
-        desktopChatRef.current.scrollTop =
-          desktopChatRef.current.scrollHeight;
-      }
-      if (modalChatRef.current) {
-        modalChatRef.current.scrollTop = modalChatRef.current.scrollHeight;
-      }
-    });
-  }, []);
-
-  // Auto-scroll on state changes
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, phase, scrollToBottom]);
-
-  const handleUserResponse = useCallback(
-    (val: string) => {
-      const resolver = inputResolvers.get(sessionId);
-      if (resolver) {
-        inputResolvers.delete(sessionId);
-        resolver(val);
-      }
+  const initialMessages: UIMessage[] = [
+    {
+      id: "greeting",
+      role: "assistant",
+      parts: [{ type: "text", text: greeting }],
     },
-    [sessionId]
+  ];
+
+  const {
+    messages,
+    sendMessage,
+    status,
+    error,
+    setMessages,
+  } = useChat({
+    messages: initialMessages,
+    onError: (err) => {
+      console.error("Chat error:", err);
+    },
+  });
+
+  const [input, setInput] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const desktopChatRef = useRef<HTMLDivElement>(null);
+  const modalChatRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const prefersReducedMotion = useReducedMotion();
+  const userScrolledUpRef = useRef(false);
+
+  // Auto-scroll helper — instant during streaming, respects user scroll-up
+  const scrollToBottom = useCallback(
+    (force = false) => {
+      requestAnimationFrame(() => {
+        [desktopChatRef.current, modalChatRef.current].forEach((el) => {
+          if (!el) return;
+          const isNearBottom =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+          if (force || isNearBottom || !userScrolledUpRef.current) {
+            el.scrollTop = el.scrollHeight;
+            userScrolledUpRef.current = false;
+          }
+        });
+      });
+    },
+    []
   );
 
-  const startSession = useCallback(() => {
-    // Abort any previous session
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+  // Track user scroll-up
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const el = e.target as HTMLElement;
+      const isNearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      userScrolledUpRef.current = !isNearBottom;
+    };
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    const desktop = desktopChatRef.current;
+    const modal = modalChatRef.current;
+    desktop?.addEventListener("scroll", handleScroll, { passive: true });
+    modal?.addEventListener("scroll", handleScroll, { passive: true });
 
-    dispatch({ type: "START_SESSION" });
+    return () => {
+      desktop?.removeEventListener("scroll", handleScroll);
+      modal?.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
-    // Use ref to read the latest sessionId, avoiding stale-closure on double-tap.
-    // START_SESSION increments by 1 in the reducer, so the new ID is ref + 1.
-    const newSessionId = sessionIdRef.current + 1;
+  // Auto-scroll on messages/status changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, status, scrollToBottom]);
 
-    runConversation(dispatch, newSessionId, controller.signal, greeting).catch(
-      (err) => {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          // Session was intentionally aborted — no-op
-          return;
-        }
-        // eslint-disable-next-line no-console
-        console.error("Intake conversation error:", err);
-      }
-    );
-  }, [greeting]);
+  // Send message handler
+  const handleSendMessage = useCallback(() => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    if (status === "streaming" || status === "submitted") return;
 
-  const resetConversation = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    dispatch({ type: "RESET" });
+    setInput("");
+    sendMessage({ text: trimmed });
+    userScrolledUpRef.current = false;
+  }, [input, status, sendMessage]);
+
+  // Mobile: listen for open-intake-modal custom event
+  useEffect(() => {
+    const handler = () => setModalOpen(true);
+    window.addEventListener("open-intake-modal", handler);
+    return () => window.removeEventListener("open-intake-modal", handler);
   }, []);
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
-    resetConversation();
-    hasStartedDesktop.current = false;
-  }, [resetConversation]);
-
-  // Desktop: auto-start once when section scrolls into view
-  useEffect(() => {
-    if (!isInView || hasStartedDesktop.current) return;
-    hasStartedDesktop.current = true;
-    startSession();
-  }, [isInView, startSession]);
-
-  // Mobile: listen for open-intake-modal custom event
-  useEffect(() => {
-    const handler = () => {
-      setModalOpen(true);
-      startSession();
-    };
-    window.addEventListener("open-intake-modal", handler);
-    return () => window.removeEventListener("open-intake-modal", handler);
-  }, [startSession]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      inputResolvers.delete(sessionIdRef.current);
-    };
   }, []);
+
+  // Suppress rendering until section is in view (desktop auto-scroll trigger is purely visual)
+  const showDesktop = isInView;
 
   return (
     <>
@@ -973,30 +599,29 @@ export default function IntakeAgent() {
             <div id="contact" className="scroll-mt-20" />
 
             {/* Desktop terminal — hidden on mobile */}
-            <div className="hidden md:block mb-6">
-              <IntakeChatContent
-                chatRef={desktopChatRef}
-                messages={messages}
-                phase={phase}
-                stepIndex={stepIndex}
-                answers={answers}
-                summaryRef={summaryRef}
-                handleUserResponse={handleUserResponse}
-              />
-            </div>
+            {showDesktop && (
+              <div className="hidden md:block mb-6">
+                <IntakeChatContent
+                  chatRef={desktopChatRef}
+                  messages={messages}
+                  status={status}
+                  input={input}
+                  setInput={setInput}
+                  onSendMessage={handleSendMessage}
+                  error={error}
+                />
+              </div>
+            )}
 
             {/* Mobile prompt — tap to open fullscreen */}
             <div className="md:hidden mb-6">
               <button
-                onClick={() => {
-                  setModalOpen(true);
-                  startSession();
-                }}
-                className="w-full bg-surface border border-accent-lit/20 rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
+                onClick={() => setModalOpen(true)}
+                className="w-full bg-surface border border-term-green/20 rounded-[14px] p-5 text-left group hover:border-term-green/40 active:scale-[0.99] transition-[color,border-color,transform]"
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-7 h-7 rounded-md bg-accent-lit/10 border border-accent-lit/20 flex items-center justify-center">
-                    <span className="text-xs text-accent-lit font-mono font-semibold">
+                  <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center">
+                    <span className="text-xs text-term-green font-mono font-semibold">
                       H
                     </span>
                   </div>
@@ -1005,10 +630,10 @@ export default function IntakeAgent() {
                   </span>
                 </div>
                 <p className="font-mono text-[13px] text-dim leading-relaxed">
-                  Tap to start a conversation. I&apos;ll ask a few quick
-                  questions so Hershey knows what you need.
+                  Tap to start a conversation. I&apos;ll help you figure out
+                  what to build and connect you with Hershey.
                 </p>
-                <span className="inline-block mt-3 font-mono text-xs text-accent-lit group-hover:translate-x-1 transition-transform">
+                <span className="inline-block mt-3 font-mono text-xs text-term-green group-hover:translate-x-1 transition-transform">
                   Open chat →
                 </span>
               </button>
@@ -1031,18 +656,18 @@ export default function IntakeAgent() {
         </div>
       </section>
 
-      {/* Fullscreen mobile modal — rendered as portal (AnimatePresence lives inside the portal) */}
+      {/* Fullscreen mobile modal */}
       <IntakeModal
         isOpen={modalOpen}
         chatRef={modalChatRef}
         messages={messages}
-        phase={phase}
-        stepIndex={stepIndex}
-        answers={answers}
-        summaryRef={summaryRef}
-        handleUserResponse={handleUserResponse}
+        status={status}
+        input={input}
+        setInput={setInput}
+        onSendMessage={handleSendMessage}
         onClose={closeModal}
         prefersReducedMotion={prefersReducedMotion ?? false}
+        error={error}
       />
     </>
   );

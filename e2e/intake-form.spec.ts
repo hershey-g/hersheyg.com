@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
 import {
-  mockIntakeAPI,
-  mockIntakeAPIError,
-  completeIntakeFlow,
+  mockChatAPI,
+  mockChatAPIError,
+  sendChatMessage,
 } from "./helpers/intake";
 
 /**
  * Scroll the contact section heading into the viewport center.
  * This reliably triggers framer-motion's useInView (margin: -100px)
- * which auto-starts the intake flow on desktop.
+ * which shows the intake chat on desktop.
  */
 async function scrollToContact(page: import("@playwright/test").Page) {
   await page.evaluate(() => {
@@ -18,71 +18,85 @@ async function scrollToContact(page: import("@playwright/test").Page) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Desktop: completes full 6-step flow and submits
+// 1. Desktop: shows initial greeting and accepts user input
 // ---------------------------------------------------------------------------
-test("Desktop: completes full 6-step flow and submits", async ({
+test("Desktop: shows greeting and sends message", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
   test.setTimeout(60_000);
 
-  const payloads = await mockIntakeAPI(page);
+  const requests = await mockChatAPI(page);
   await page.goto("/");
   await scrollToContact(page);
 
-  await completeIntakeFlow(page);
+  // Initial greeting should be visible (static, no API call)
+  await expect(
+    page.locator('[aria-label="Agent is typing"]').or(
+      page.locator(".intake-animate-in").first()
+    )
+  ).toBeVisible();
 
-  await expect(page.getByText("Brief sent")).toBeVisible();
-  expect(payloads).toHaveLength(1);
-  expect(payloads[0]).toMatchObject({
-    type: "AI agent",
-    describe: "Test project: an AI agent for e2e testing",
-    timeline: "This quarter",
-    budget: "$25-50k",
-    name: "Test User",
-    contact: "test@example.com",
-  });
-  expect(payloads[0].ref).toMatch(/^#PRJ-\d{4}$/);
+  // Wait for the desktop terminal title to appear
+  await expect(
+    page.getByText("~/intake-agent")
+  ).toBeVisible({ timeout: 5000 });
+
+  // Send a message
+  await sendChatMessage(page, "I want to build an AI agent for customer support");
+
+  // User message should appear
+  await expect(
+    page.getByText("I want to build an AI agent for customer support")
+  ).toBeVisible();
+
+  // API should have been called
+  expect(requests.length).toBeGreaterThanOrEqual(1);
 });
 
 // ---------------------------------------------------------------------------
-// 2. Mobile: modal opens and flow completes
+// 2. Mobile: modal opens with greeting and chat input
 // ---------------------------------------------------------------------------
-test("Mobile: modal opens and flow completes", async ({ page }, testInfo) => {
+test("Mobile: modal opens and shows chat", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Mobile only");
   test.setTimeout(60_000);
 
-  await mockIntakeAPI(page);
+  await mockChatAPI(page);
   await page.goto("/");
 
-  // Clicking "Open chat →" auto-scrolls and starts the flow
+  // Clicking "Open chat →" opens the modal
   await page.getByText("Open chat →").click();
   const dialog = page.getByRole("dialog", { name: "Project intake form" });
   await expect(dialog).toBeVisible();
 
-  // Scope to dialog — embedded terminal also renders the same state
-  await completeIntakeFlow(page, dialog);
+  // Chat input should be visible in the modal
+  await expect(dialog.getByPlaceholder("Type a message...")).toBeVisible();
 
-  await expect(dialog.getByText("Brief sent")).toBeVisible();
+  // Send a message within the modal
+  await sendChatMessage(page, "Need a WhatsApp bot", dialog);
+
+  // User message should appear in dialog
+  await expect(dialog.getByText("Need a WhatsApp bot")).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
-// 3. API failure shows fallback email
+// 3. API error shows fallback email
 // ---------------------------------------------------------------------------
-test("API failure shows fallback email", async ({ page }, testInfo) => {
+test("API error shows fallback email", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
   test.setTimeout(60_000);
 
-  await mockIntakeAPIError(page);
+  await mockChatAPIError(page);
   await page.goto("/");
   await scrollToContact(page);
 
-  await completeIntakeFlow(page);
+  // Send a message that will trigger the error
+  await sendChatMessage(page, "Hello, I need help");
 
+  // Should show fallback email (use exact href to distinguish from footer link)
   await expect(
-    page.getByText("just email hello@hersheyg.com")
-  ).toBeVisible();
-  await expect(page.getByText("Brief sent")).not.toBeVisible();
+    page.locator('a[href="mailto:hello@hersheyg.com"]')
+  ).toBeVisible({ timeout: 10000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -91,26 +105,24 @@ test("API failure shows fallback email", async ({ page }, testInfo) => {
 test("Empty input cannot submit", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
 
-  await mockIntakeAPI(page);
+  await mockChatAPI(page);
   await page.goto("/");
   await scrollToContact(page);
 
-  // Get past step 1 to reach the textarea step
-  await page.getByRole("button", { name: "AI agent" }).click();
+  const sendBtn = page.getByRole("button", { name: "Send message" });
+  await expect(sendBtn).toBeVisible();
 
-  const textarea = page.locator("textarea");
-  await expect(textarea).toBeVisible();
-
-  const submitBtn = page.getByRole("button", { name: "→" });
-  await expect(submitBtn).toBeDisabled();
+  // Should be disabled when input is empty
+  await expect(sendBtn).toBeDisabled();
 
   // Spaces-only should stay disabled
-  await textarea.fill("   ");
-  await expect(submitBtn).toBeDisabled();
+  const input = page.getByPlaceholder("Type a message...");
+  await input.fill("   ");
+  await expect(sendBtn).toBeDisabled();
 
   // Real text should enable
-  await textarea.fill("Real project description");
-  await expect(submitBtn).toBeEnabled();
+  await input.fill("Hello");
+  await expect(sendBtn).toBeEnabled();
 });
 
 // ---------------------------------------------------------------------------

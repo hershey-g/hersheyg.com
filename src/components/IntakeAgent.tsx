@@ -581,18 +581,18 @@ export default function IntakeAgent() {
   return (
     <>
       {/* Embedded section */}
-      <section className="py-16 sm:py-32 sm:pb-16" ref={sectionRef}>
+      <section className="py-14 sm:py-24 sm:pb-14 bg-bg-2/30" ref={sectionRef}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="w-full max-w-[900px] mx-auto">
             <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-accent-lit mb-5 sm:mb-6">
               03 // CONTACT
             </p>
 
-            <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-3 sm:mb-4">
+            <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4 sm:mb-5">
               {COPY.contact.heading}
             </h2>
 
-            <p className="text-base sm:text-[17px] text-dim leading-relaxed max-w-[540px] mb-8 sm:mb-10">
+            <p className="text-base sm:text-[17px] text-dim leading-relaxed max-w-[540px] mb-10 sm:mb-12">
               {COPY.contact.sub}
             </p>
 

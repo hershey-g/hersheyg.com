@@ -6,7 +6,7 @@ import ProofCard from "./ProofCard";
 
 export default function Proof() {
   return (
-    <section id="proof" className="py-16 sm:py-32">
+    <section id="proof" className="py-14 sm:py-24">
       <div className="max-w-6xl mx-auto px-6">
         <RevealOnScroll>
           <SectionTag>{COPY.proof.tag}</SectionTag>

@@ -8,7 +8,7 @@ import { getRateLimiter } from "@/lib/rate-limit";
 
 const MAX_MESSAGES = 30;
 const MAX_INPUT_LENGTH = 2000;
-const MODEL = process.env.CHAT_MODEL ?? "claude-3-5-haiku-latest";
+const MODEL = process.env.CHAT_MODEL ?? "claude-opus-4-6";
 
 function generateRef() {
   return "#PRJ-" + Math.floor(1000 + Math.random() * 9000);
@@ -72,9 +72,16 @@ export async function POST(request: Request) {
     return msg;
   });
 
+  // Soft limit: nudge the agent to wrap up before the hard limit
+  let systemPrompt = INTAKE_SYSTEM_PROMPT;
+  if (messages.length >= 25) {
+    systemPrompt += `\n\n## URGENT — Conversation Limit
+This conversation is approaching the message limit. You MUST wrap up now. If you have enough info, call complete_intake immediately. If not, tell the visitor to email hello@hersheyg.com and give them a warm send-off. Do not ask more questions.`;
+  }
+
   const result = streamText({
     model: anthropic(MODEL),
-    system: INTAKE_SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: await convertToModelMessages(messages),
     temperature: 0.7,
     maxOutputTokens: 1024,

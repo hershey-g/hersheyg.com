@@ -112,19 +112,19 @@ function useScrollLock(isLocked: boolean) {
    Sub-components
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function TypingDots() {
+function ThinkingIndicator() {
   return (
-    <div className="flex gap-1 py-1" role="status" aria-label="Agent is typing">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-1.5 h-1.5 rounded-full bg-term-green/50"
+    <div className="flex flex-col gap-1.5 py-1" role="status" aria-label="Agent is thinking">
+      <div className="w-[120px] h-[3px] rounded-full bg-term-orange/15 overflow-hidden relative">
+        <div
+          className="absolute inset-0"
           style={{
-            animation: "intake-bounce 1.2s infinite",
-            animationDelay: `${i * 150}ms`,
+            background: "linear-gradient(90deg, transparent, oklch(0.8 0.15 65 / 0.6), transparent)",
+            animation: "intake-shimmer 1.5s ease-in-out infinite",
           }}
         />
-      ))}
+      </div>
+      <span className="text-[10px] font-mono text-term-orange/50">thinking...</span>
     </div>
   );
 }
@@ -140,8 +140,8 @@ function AgentMessage({
 
   return (
     <div className="flex gap-2.5 items-start mb-4 intake-animate-in">
-      <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <span className="text-xs text-term-green font-mono font-semibold">
+      <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-xs text-term-orange font-mono font-semibold">
           H
         </span>
       </div>
@@ -150,7 +150,7 @@ function AgentMessage({
         style={{ minHeight: "2.5rem", overflowWrap: "break-word" }}
       >
         {isStreaming && !hasText ? (
-          <TypingDots />
+          <ThinkingIndicator />
         ) : (
           <p className="text-[13px] leading-relaxed text-term-green-soft font-mono whitespace-pre-line">
             {message?.parts.map((part, i) => {
@@ -159,7 +159,7 @@ function AgentMessage({
               return null;
             })}
             {isStreaming && hasText && (
-              <span className="inline-block w-[6px] h-[14px] bg-term-green/70 ml-0.5 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+              <span className="inline-block w-[6px] h-[14px] bg-term-orange/70 ml-0.5 align-middle" style={{ animation: "blink 1s step-end infinite" }} />
             )}
           </p>
         )}
@@ -212,13 +212,13 @@ function ChatInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-term-green/20 rounded-lg bg-bg/60 text-text outline-none focus:border-term-green/50 transition-colors placeholder:text-dim"
+        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-term-green/20 rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
       />
       <button
         onClick={onSubmit}
         disabled={!input.trim() || isStreaming}
-        className="font-mono text-xs px-4 py-2.5 border border-term-green/40 rounded-lg
-                   bg-term-green/10 text-term-green hover:bg-term-green/20 transition-all
+        className="font-mono text-xs px-4 py-2.5 border border-accent-lit/40 rounded-lg
+                   bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
                    disabled:opacity-25 disabled:cursor-not-allowed"
         aria-label="Send message"
       >
@@ -260,7 +260,7 @@ function IntakeChatContent({
       className={`bg-surface ${
         isModal
           ? "flex flex-col h-full"
-          : "border border-term-green/20 rounded-[14px] overflow-hidden h-[460px] flex flex-col"
+          : "intake-border rounded-[14px] overflow-hidden h-[460px] flex flex-col"
       }`}
     >
       {/* Header */}
@@ -273,8 +273,8 @@ function IntakeChatContent({
           </>
         )}
         {isModal && (
-          <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs text-term-green font-mono font-semibold">
+          <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs text-term-orange font-mono font-semibold">
               H
             </span>
           </div>
@@ -282,18 +282,21 @@ function IntakeChatContent({
         <span className="font-mono text-xs text-dim ml-1 sm:ml-2 flex-1">
           {isModal ? "Intake Agent" : "~/intake-agent"}
         </span>
-        {isActive && (
+        {status === "submitted" && (
+          <span className="w-2 h-2 rounded-full bg-term-orange animate-pulse" />
+        )}
+        {status === "streaming" && (
           <span className="w-2 h-2 rounded-full bg-term-green animate-pulse" />
         )}
         {isModal && onClose && (
           <button
             onClick={onClose}
-            className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-dim hover:text-white hover:bg-white/10 transition-colors"
+            className="ml-2 w-11 h-11 flex items-center justify-center rounded-lg text-text hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close intake form"
           >
             <svg
-              width="16"
-              height="16"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -445,7 +448,7 @@ function IntakeModal({
             }
             transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             className="fixed inset-0 z-[61] md:hidden flex flex-col"
-            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
             role="dialog"
             aria-modal="true"
             aria-label="Project intake form"
@@ -617,11 +620,11 @@ export default function IntakeAgent() {
             <div className="md:hidden mb-6">
               <button
                 onClick={() => setModalOpen(true)}
-                className="w-full bg-surface border border-term-green/20 rounded-[14px] p-5 text-left group hover:border-term-green/40 active:scale-[0.99] transition-[color,border-color,transform]"
+                className="w-full bg-surface border border-term-green/20 rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-7 h-7 rounded-md bg-term-green/10 border border-term-green/25 flex items-center justify-center">
-                    <span className="text-xs text-term-green font-mono font-semibold">
+                  <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center">
+                    <span className="text-xs text-term-orange font-mono font-semibold">
                       H
                     </span>
                   </div>
@@ -633,7 +636,7 @@ export default function IntakeAgent() {
                   Tap to start a conversation. I&apos;ll help you figure out
                   what to build and connect you with Hershey.
                 </p>
-                <span className="inline-block mt-3 font-mono text-xs text-term-green group-hover:translate-x-1 transition-transform">
+                <span className="inline-block mt-3 font-mono text-xs text-accent-lit group-hover:translate-x-1 transition-transform">
                   Open chat →
                 </span>
               </button>

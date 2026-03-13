@@ -119,13 +119,13 @@ function SuggestionChips({
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
           className="overflow-hidden mt-3"
         >
-          <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             {SUGGESTION_CHIPS.map((chip) => (
               <button
                 key={chip}
                 type="button"
                 onClick={() => onSelect(chip)}
-                className="border border-line rounded-md sm:rounded-lg px-2.5 py-2.5 sm:px-4 sm:py-3.5 text-left font-mono text-[11px] sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
+                className="border border-line rounded-md sm:rounded-lg px-3 py-3 sm:px-4 sm:py-3.5 text-left font-mono text-xs sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
               >
                 {chip}
               </button>
@@ -260,7 +260,7 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
+      className="min-h-dvh flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
       {/* Section header */}
       <div className="text-center pt-12 sm:pt-20 pb-4 sm:pb-8 px-6 sm:px-12">
@@ -280,11 +280,11 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex items-center justify-center px-6 pb-6 sm:pb-12">
-        <div className="max-w-[680px] w-full bg-bg-2 border border-line rounded-xl overflow-hidden flex flex-col md:h-[420px]">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line rounded-xl overflow-hidden flex flex-col min-h-[340px] md:h-[420px]">
           {/* Messages area */}
           <div
             ref={chatRef}
-            className="p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
+            className="p-4 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
           >
             {messages.map((msg) => {
               const hasVisibleContent = msg.parts.some(

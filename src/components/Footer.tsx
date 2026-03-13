@@ -2,7 +2,7 @@ import { COPY } from '@/lib/constants';
 
 export default function Footer() {
   return (
-    <footer className="py-6 border-t border-line">
+    <footer className="py-6 px-6 border-t border-line">
       <div className="flex justify-center items-center gap-5 font-mono text-sm text-dim flex-wrap">
         <span>&copy; {new Date().getFullYear()} Hershey Goldberger</span>
 

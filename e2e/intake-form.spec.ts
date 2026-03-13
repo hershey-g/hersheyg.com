@@ -6,21 +6,18 @@ import {
 } from "./helpers/intake";
 
 /**
- * Scroll the contact section heading into the viewport center.
- * This reliably triggers framer-motion's useInView (margin: -100px)
- * which shows the intake chat on desktop.
+ * Scroll to the inline contact section.
  */
 async function scrollToContact(page: import("@playwright/test").Page) {
-  await page.evaluate(() => {
-    const h = document.querySelector("#contact");
-    h?.scrollIntoView({ behavior: "instant", block: "center" });
-  });
+  await page.evaluate(() =>
+    document.getElementById("contact")?.scrollIntoView({ behavior: "instant" })
+  );
 }
 
 // ---------------------------------------------------------------------------
-// 1. Desktop: shows initial greeting and accepts user input
+// 1. Desktop: inline chat shows greeting and accepts user input
 // ---------------------------------------------------------------------------
-test("Desktop: shows greeting and sends message", async ({
+test("Desktop: inline chat sends message", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
@@ -28,19 +25,11 @@ test("Desktop: shows greeting and sends message", async ({
 
   const requests = await mockChatAPI(page);
   await page.goto("/");
+
   await scrollToContact(page);
 
-  // Initial greeting should be visible (static, no API call)
-  await expect(
-    page.locator('[aria-label="Agent is typing"]').or(
-      page.locator(".intake-animate-in").first()
-    )
-  ).toBeVisible();
-
-  // Wait for the desktop terminal title to appear
-  await expect(
-    page.getByText("~/intake-agent")
-  ).toBeVisible({ timeout: 5000 });
+  // No terminal chrome should be present
+  await expect(page.getByText("~/intake-agent")).toHaveCount(0);
 
   // Send a message
   await sendChatMessage(page, "I want to build an AI agent for customer support");
@@ -55,28 +44,26 @@ test("Desktop: shows greeting and sends message", async ({
 });
 
 // ---------------------------------------------------------------------------
-// 2. Mobile: modal opens with greeting and chat input
+// 2. Suggestion chips render in 2x2 grid
 // ---------------------------------------------------------------------------
-test("Mobile: modal opens and shows chat", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile", "Mobile only");
+test("Suggestion chips render in grid", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Desktop only");
   test.setTimeout(60_000);
 
   await mockChatAPI(page);
   await page.goto("/");
 
-  // Clicking "Open chat →" opens the modal
-  await page.getByText("Open chat →").click();
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
-  await expect(dialog).toBeVisible();
+  await scrollToContact(page);
 
-  // Chat input should be visible in the modal
-  await expect(dialog.getByPlaceholder("Type a message...")).toBeVisible();
+  // All 4 chips should be visible
+  await expect(page.getByRole("button", { name: "I want to build an AI agent" })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("button", { name: "I have a project idea" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tell me about your work" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Just exploring" })).toBeVisible();
 
-  // Send a message within the modal
-  await sendChatMessage(page, "Need a WhatsApp bot", dialog);
-
-  // User message should appear in dialog
-  await expect(dialog.getByText("Need a WhatsApp bot")).toBeVisible();
+  // Chips container should use grid layout
+  const chipsGrid = page.locator(".grid.grid-cols-2");
+  await expect(chipsGrid).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
@@ -88,14 +75,15 @@ test("API error shows fallback email", async ({ page }, testInfo) => {
 
   await mockChatAPIError(page);
   await page.goto("/");
+
   await scrollToContact(page);
 
   // Send a message that will trigger the error
   await sendChatMessage(page, "Hello, I need help");
 
-  // Should show fallback email (use exact href to distinguish from footer link)
+  // Should show fallback email (scoped to contact section to avoid footer match)
   await expect(
-    page.locator('a[href="mailto:hello@hersheyg.com"]')
+    page.locator('#contact a[href="mailto:hello@hersheyg.com"]')
   ).toBeVisible({ timeout: 10000 });
 });
 
@@ -107,6 +95,7 @@ test("Empty input cannot submit", async ({ page }, testInfo) => {
 
   await mockChatAPI(page);
   await page.goto("/");
+
   await scrollToContact(page);
 
   const sendBtn = page.getByRole("button", { name: "Send message" });
@@ -126,7 +115,26 @@ test("Empty input cannot submit", async ({ page }, testInfo) => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. No horizontal overflow on mobile
+// 5. Mobile: chat is inline (no modal)
+// ---------------------------------------------------------------------------
+test("Mobile: chat is inline", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "Mobile only");
+  test.setTimeout(60_000);
+
+  await mockChatAPI(page);
+  await page.goto("/");
+
+  await scrollToContact(page);
+
+  // Chat input should be visible inline (no modal needed)
+  await expect(page.getByPlaceholder("Type a message...")).toBeVisible({ timeout: 5000 });
+
+  // No "Tap to start" button should exist
+  await expect(page.locator("button:has-text('Tap to start')")).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------------------
+// 6. No horizontal overflow on mobile
 // ---------------------------------------------------------------------------
 test("No horizontal overflow on mobile", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Mobile only");

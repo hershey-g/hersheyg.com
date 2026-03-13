@@ -46,3 +46,4 @@ blob-report/
 *.tsbuildinfo
 next-env.d.ts
 .superpowers/
+.worktrees/

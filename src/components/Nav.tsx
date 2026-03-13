@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const NAV_LINKS = [
   { label: "what I build", href: "#services" },
   { label: "proof of work", href: "#proof" },
+  { label: "about", href: "#about" },
   { label: "let's talk", href: "#contact" },
 ] as const;
 
@@ -33,12 +34,8 @@ export default function Nav() {
 
   const handleMobileLink = useCallback((href: string) => {
     setMenuOpen(false);
-    if (href === "#contact") {
-      window.dispatchEvent(new CustomEvent("open-intake-modal"));
-    } else {
-      const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }
+    const el = document.querySelector(href);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   return (
@@ -70,16 +67,21 @@ export default function Nav() {
         <ul className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
-              <a
-                href={link.href}
-                className={
-                  link.href === "#contact"
-                    ? "border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors"
-                    : "text-dim hover:text-text transition-colors text-sm"
-                }
-              >
-                {link.label}
-              </a>
+              {link.href === "#contact" ? (
+                <button
+                  onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                  className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors cursor-pointer"
+                >
+                  {link.label}
+                </button>
+              ) : (
+                <a
+                  href={link.href}
+                  className="text-dim hover:text-text transition-colors text-sm"
+                >
+                  {link.label}
+                </a>
+              )}
             </li>
           ))}
         </ul>

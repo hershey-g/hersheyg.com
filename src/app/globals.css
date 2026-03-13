@@ -2,16 +2,15 @@
 
 /* -- Design Tokens -- */
 @theme inline {
-  --color-bg: #0D1B2A;
-  --color-bg-2: #0f2035;
+  --color-bg: #080F1A;
+  --color-bg-2: #0C1524;
   --color-accent: #1E3A5F;
   --color-accent-lit: #5b9bd5;
-  --color-body: #b8c8da;
-  --color-text: #CBD5E1;
+  --color-body: #CBD5E1;
+  --color-text: #E2E8F0;
   --color-white: #FFFFFF;
-  --color-dim: #94a3b3;
-  --color-line: rgba(148, 163, 184, 0.08);
-  --color-surface: oklch(0.17 0.01 260);
+  --color-dim: #A0AEBF;
+  --color-line: rgba(148, 163, 184, 0.10);
 
   --color-term-green: #22c55e;
   --color-term-green-soft: #86efac;
@@ -23,21 +22,14 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
 
-  --text-xs: 0.625rem;
-  --text-sm: 0.75rem;
-  --text-base: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.0625rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
 
   --radius-sm: 4px;
   --radius-md: 8px;
-}
-
-/* -- @property for terminal border animation -- */
-@property --border-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
 }
 
 /* -- Base Styles -- */
@@ -59,93 +51,36 @@ body {
   color: var(--color-white);
 }
 
-/* -- Grain Overlay -- */
-body::before {
+/* -- Testimonial crossfade -- */
+@keyframes testimonial-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes testimonial-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+/* -- Scroll indicator bounce -- */
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+.scroll-indicator {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+/* -- About photo grain overlay -- */
+.about-photo-grain::after {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
-}
-
-/* -- Scanlines -- */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 59;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.012) 2px,
-    rgba(0, 0, 0, 0.012) 4px
-  );
-}
-
-/* -- Terminal Border Animation -- */
-@keyframes rotate-border {
-  to {
-    --border-angle: 360deg;
-  }
-}
-
-.terminal-border {
-  --border-angle: 0deg;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--color-bg-2), var(--color-bg-2)) padding-box,
-    conic-gradient(
-      from var(--border-angle),
-      var(--color-accent-lit) 0%,
-      transparent 25%,
-      transparent 75%,
-      var(--color-accent-lit) 100%
-    ) border-box;
-  animation: rotate-border 6s linear infinite;
-}
-
-/* -- Intake animated border -- */
-.intake-border {
-  --border-angle: 0deg;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
-    conic-gradient(
-      from var(--border-angle),
-      var(--color-term-green) 0%,
-      var(--color-term-orange) 15%,
-      transparent 30%,
-      transparent 70%,
-      var(--color-accent-lit) 85%,
-      var(--color-term-green) 100%
-    ) border-box;
-  animation: rotate-border 8s linear infinite;
-}
-
-/* -- Animated HR streak -- */
-@keyframes streak {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
-}
-
-/* -- Cursor blink -- */
-@keyframes blink {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
 }
 
 /* -- Reduced Motion -- */

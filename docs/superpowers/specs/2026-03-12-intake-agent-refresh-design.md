@@ -88,12 +88,23 @@ Update tone directives in `INTAKE_SYSTEM_PROMPT`:
 - "you're his agent, not him" becomes "You represent Hershey. Be the kind of first impression he'd want to make."
 - Add rule: "Never use em dashes. Write like a human texting, not like AI."
 
-Everything else in the system prompt stays unchanged: conversation strategy, guardrails, what-to-gather list, wrapping-up behavior.
+**What to Gather update:**
+- Change item 5 from "Contact info, email or phone" to two separate items:
+  - "Email address so Hershey can follow up"
+  - "Phone number, so Hershey can call or text if needed"
+- The agent should collect BOTH, not treat them as alternatives
+
+Everything else in the system prompt stays unchanged: conversation strategy, guardrails, wrapping-up behavior.
+
+### 5. Add phone field to complete_intake tool (route.ts)
+
+Add a separate `phone` field to the `complete_intake` tool's zod schema (currently only has a single `contact` field for email). Include phone in the notification email template.
 
 ## Files Modified
 
-- `src/lib/intake-system-prompt.ts` — Greetings array + system prompt tone
+- `src/lib/intake-system-prompt.ts` — Greetings array + system prompt tone + what-to-gather
 - `src/components/IntakeAgent.tsx` — Starter chips component, color classes
+- `src/app/api/chat/route.ts` — Add phone field to complete_intake tool schema
 
 ## Verification
 

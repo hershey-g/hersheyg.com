@@ -1,95 +1,76 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { COPY } from "@/lib/constants";
 import SectionTag from "./SectionTag";
+import SectionHead from "./SectionHead";
 import RevealOnScroll from "./RevealOnScroll";
+import Parallax from "./Parallax";
+
+function PhotoPlaceholder({ className }: { className?: string }) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center gap-3 bg-bg border border-line rounded-lg ${className ?? ""}`}
+    >
+      {/* Camera icon */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-dim/40"
+        aria-hidden="true"
+      >
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+        <circle cx="12" cy="13" r="3" />
+      </svg>
+      <span className="text-sm text-dim/40 select-none">Headshot here</span>
+    </div>
+  );
+}
 
 export default function About() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "center center"],
-  });
-
-  // Desktop: clip-path reveal left→right
-  const clipPath = useTransform(
-    scrollYProgress,
-    [0, 1],
-    ["inset(0 100% 0 0)", "inset(0 0% 0 0)"]
-  );
-
-  // Mobile: clip-path reveal bottom→up
-  const mobileClipPath = useTransform(
-    scrollYProgress,
-    [0, 0.8],
-    ["inset(100% 0 0 0)", "inset(0% 0 0 0)"]
-  );
-
   return (
-    <section id="about" className="py-14 sm:py-24 scroll-mt-20" ref={sectionRef}>
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10 lg:gap-16 items-start">
+    <section id="about" className="bg-bg-2 py-[120px] scroll-mt-20">
+      <div className="max-w-[1000px] mx-auto px-6">
+        <Parallax speed={0.95}>
+          <RevealOnScroll>
+            <SectionTag>{COPY.about.tag}</SectionTag>
+            <SectionHead bold={COPY.about.heading[0]} dim={COPY.about.heading[1]} />
+          </RevealOnScroll>
+        </Parallax>
+
+        {/* Desktop two-column grid */}
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 lg:gap-16 items-start">
           {/* Text column */}
-          <div>
-            <RevealOnScroll>
-              <SectionTag>{COPY.about.tag}</SectionTag>
+          <RevealOnScroll>
+            {/* Accent line */}
+            <div className="w-12 h-px bg-accent-lit/30 mb-6" aria-hidden="true" />
 
-              <h2 className="mt-4 text-[clamp(1.75rem,3.5vw,2.5rem)] tracking-tight leading-[1.15]">
-                <span className="text-white font-bold block">{COPY.about.heading[0]}</span>
-                <span className="text-dim font-normal block">{COPY.about.heading[1]}</span>
-              </h2>
+            {COPY.about.body.map((paragraph, i) => (
+              <p
+                key={i}
+                className="text-lg text-body leading-[1.7] mb-5 last:mb-0"
+              >
+                {paragraph}
+              </p>
+            ))}
+          </RevealOnScroll>
 
-              {/* Accent line */}
-              <div className="w-12 h-px bg-accent-lit/30 mt-6 mb-6" aria-hidden="true" />
-
-              {/* Body paragraphs */}
-              {COPY.about.body.map((paragraph, i) => (
-                <p key={i} className="text-base text-body leading-relaxed mb-4 last:mb-0 max-w-[560px]">
-                  {paragraph}
-                </p>
-              ))}
-            </RevealOnScroll>
-          </div>
-
-          {/* Photo column - desktop: bleeds right, clip-path reveal */}
-          <div className="relative hidden lg:block">
-            <motion.div
-              className="absolute top-0 right-0 bottom-0 w-[280px] overflow-hidden rounded-l-md"
-              style={prefersReducedMotion ? {} : { clipPath }}
-            >
-              {/* Photo placeholder: gradient bg + HG monogram + grain */}
-              <div className="relative w-full h-[400px] bg-gradient-to-br from-accent/30 via-bg-2 to-accent/10 about-photo-grain">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-6xl font-bold text-white/[0.06] tracking-tight select-none">
-                    HG
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Photo - mobile: full-width bleed below bio, clip bottom→up */}
-          <div className="lg:hidden -mx-6">
-            <motion.div
-              className="overflow-hidden"
-              style={prefersReducedMotion ? {} : { clipPath: mobileClipPath }}
-            >
-              <div className="relative w-full h-[240px] bg-gradient-to-br from-accent/30 via-bg-2 to-accent/10 about-photo-grain">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-5xl font-bold text-white/[0.06] tracking-tight select-none">
-                    HG
-                  </span>
-                </div>
-                {/* Gradient mask on top edge */}
-                <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-bg to-transparent" aria-hidden="true" />
-              </div>
-            </motion.div>
-          </div>
+          {/* Photo column — desktop only */}
+          <RevealOnScroll>
+            <PhotoPlaceholder className="hidden lg:flex w-[300px] h-[380px]" />
+          </RevealOnScroll>
         </div>
+
+        {/* Photo — mobile only, stacks below text */}
+        <RevealOnScroll>
+          <PhotoPlaceholder className="lg:hidden w-full h-[240px] mt-10" />
+        </RevealOnScroll>
       </div>
     </section>
   );

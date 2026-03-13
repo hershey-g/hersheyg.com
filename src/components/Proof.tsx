@@ -6,7 +6,7 @@ import { COPY } from "@/lib/constants";
 import SectionTag from "./SectionTag";
 import SectionHead from "./SectionHead";
 import RevealOnScroll from "./RevealOnScroll";
-import ProofCard from "./ProofCard";
+import Parallax from "./Parallax";
 
 function TestimonialRotator() {
   const prefersReducedMotion = useReducedMotion();
@@ -73,19 +73,50 @@ function TestimonialRotator() {
 
 export default function Proof() {
   return (
-    <section id="proof" className="py-14 sm:py-24">
-      <div className="max-w-6xl mx-auto px-6">
-        <RevealOnScroll>
-          <SectionTag>{COPY.proof.tag}</SectionTag>
-          <div className="mt-4">
-            <SectionHead bold={COPY.proof.heading[0]} dim={COPY.proof.heading[1]} />
-          </div>
-        </RevealOnScroll>
+    <section id="proof" className="py-[120px] bg-bg">
+      <div className="max-w-[900px] mx-auto px-6 sm:px-12">
+        <Parallax speed={0.95}>
+          <RevealOnScroll>
+            <SectionTag>{COPY.proof.tag}</SectionTag>
+            <div className="mt-4">
+              <SectionHead bold={COPY.proof.heading[0]} dim={COPY.proof.heading[1]} />
+            </div>
+          </RevealOnScroll>
+        </Parallax>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        {/* Proof rows */}
+        <div className="mt-12">
           {COPY.proof.cards.map((card, i) => (
             <RevealOnScroll key={i} delay={i * 0.12}>
-              <ProofCard card={card} />
+              <div
+                className={`grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-x-12 py-9 border-t border-line${
+                  i === COPY.proof.cards.length - 1 ? " border-b" : ""
+                }`}
+              >
+                {/* Left column: label */}
+                <div className="mb-4 sm:mb-0 pt-[4px]">
+                  <span className="font-mono text-[12px] text-dim uppercase tracking-widest">
+                    {card.label}
+                  </span>
+                </div>
+
+                {/* Right column: metric, body, badge */}
+                <div>
+                  <p
+                    className="font-extrabold text-white leading-[1.1] tracking-[-0.03em] mb-3"
+                    style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)" }}
+                  >
+                    {card.metric}
+                  </p>
+                  <p className="text-base text-body leading-[1.65] max-w-[560px]">
+                    {card.body}
+                  </p>
+                  <div className="inline-flex items-center gap-2 mt-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-term-green" aria-hidden="true" />
+                    <span className="font-mono text-[12px] text-dim">{card.badge}</span>
+                  </div>
+                </div>
+              </div>
             </RevealOnScroll>
           ))}
         </div>

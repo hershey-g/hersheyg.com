@@ -1,6 +1,5 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-import AnimatedHR from "@/components/AnimatedHR";
 import Services from "@/components/Services";
 import Proof from "@/components/Proof";
 import About from "@/components/About";
@@ -21,13 +20,9 @@ export default function Home() {
 
       <main className="relative z-10">
         <Hero />
-        <AnimatedHR />
         <Services />
-        <AnimatedHR />
         <Proof />
-        <AnimatedHR />
         <About />
-        <AnimatedHR />
         <IntakeAgent />
       </main>
 

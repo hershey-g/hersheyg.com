@@ -1,19 +1,19 @@
 import { test, expect } from "@playwright/test";
 
-test("Hero headline rotates after interval", async ({ page }, testInfo) => {
+test("Hero shows static headline and CTA", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
-  test.setTimeout(30_000);
 
   await page.goto("/");
 
-  // Wait for scramble to finish
-  await page.waitForTimeout(2000);
   const h1 = page.locator("h1");
-  const initialText = await h1.getAttribute("aria-label") ?? await h1.innerText();
+  await expect(h1).toBeVisible();
+  await expect(h1).toContainText("I build AI that runs");
 
-  // Wait for rotation (10s interval + scramble time)
-  await page.waitForTimeout(12_000);
+  // CTA button should exist
+  const cta = page.getByRole("button", { name: "Start a conversation" });
+  await expect(cta).toBeVisible();
 
-  const newText = await h1.getAttribute("aria-label") ?? await h1.innerText();
-  expect(newText).not.toBe(initialText);
+  // No terminal element should be present
+  await expect(page.locator('[data-testid="terminal"]')).toHaveCount(0);
+  await expect(page.getByText("~/projects")).toHaveCount(0);
 });

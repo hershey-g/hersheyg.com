@@ -91,19 +91,37 @@ function useScrollLock(isLocked: boolean) {
   useEffect(() => {
     if (!isLocked) return;
 
+    const scrollY = window.scrollY;
     const scrollbarWidth =
       window.innerWidth - document.documentElement.clientWidth;
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
+    const originalStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      paddingRight: document.body.style.paddingRight,
+    };
 
+    // position: fixed is required for iOS Safari to actually prevent scrolling
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
+      document.body.style.overflow = originalStyles.overflow;
+      document.body.style.position = originalStyles.position;
+      document.body.style.top = originalStyles.top;
+      document.body.style.left = originalStyles.left;
+      document.body.style.right = originalStyles.right;
+      document.body.style.paddingRight = originalStyles.paddingRight;
+      // Restore scroll position
+      window.scrollTo(0, scrollY);
     };
   }, [isLocked]);
 }
@@ -241,7 +259,7 @@ function ChatInput({
   onSubmit: () => void;
   isStreaming: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && input.trim() && !isStreaming) {
@@ -250,23 +268,32 @@ function ChatInput({
     }
   };
 
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input]);
+
   return (
-    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-line bg-bg/30 flex-shrink-0">
-      <input
+    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-line bg-bg/30 flex-shrink-0 items-end">
+      <textarea
         ref={inputRef}
-        type="text"
+        rows={1}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
+        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim resize-none leading-relaxed"
+        style={{ fontSize: "16px" }}
       />
       <button
         onClick={onSubmit}
         disabled={!input.trim() || isStreaming}
         className="font-mono text-xs px-4 py-2.5 border border-accent-lit/40 rounded-lg
                    bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
-                   disabled:opacity-25 disabled:cursor-not-allowed"
+                   disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0"
         aria-label="Send message"
       >
         →
@@ -474,6 +501,25 @@ function IntakeModal({
   useFocusTrap(modalRef, isOpen, onClose);
   useScrollLock(isOpen);
 
+  // Track visual viewport height to handle virtual keyboard on mobile
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      document.documentElement.style.setProperty("--app-vh", `${vv.height}px`);
+    };
+    update();
+
+    vv.addEventListener("resize", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      document.documentElement.style.removeProperty("--app-vh");
+    };
+  }, [isOpen]);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -505,7 +551,7 @@ function IntakeModal({
             }
             transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             className="fixed inset-0 z-[61] md:hidden flex flex-col"
-            style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
+            style={{ height: "calc(var(--app-vh, 100dvh))", paddingTop: "env(safe-area-inset-top, 0px)" }}
             role="dialog"
             aria-modal="true"
             aria-label="Project intake form"
@@ -589,7 +635,7 @@ export default function IntakeAgent() {
     []
   );
 
-  // Track user scroll-up
+  // Track user scroll-up — re-run when modal opens so modalChatRef is attached
   useEffect(() => {
     const handleScroll = (e: Event) => {
       const el = e.target as HTMLElement;
@@ -607,7 +653,7 @@ export default function IntakeAgent() {
       desktop?.removeEventListener("scroll", handleScroll);
       modal?.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [modalOpen]);
 
   // Auto-scroll on messages/status changes
   useEffect(() => {

@@ -102,37 +102,88 @@ git commit -m "feat: warm up intake greetings and system prompt tone"
 
 ---
 
-## Chunk 1b: Add phone field to complete_intake tool
+## Chunk 1b: Split contact into email + phone, fix tone in Guardrails & Strategy
 
-### Task 1b: Update tool schema and email template
+### Task 1b: Update tool schema, email logic, and tone alignment
 
 **Files:**
 - Modify: `src/app/api/chat/route.ts`
+- Modify: `src/lib/intake-system-prompt.ts` (additional tone fixes)
 
-- [ ] **Step 1: Add `phone` field to complete_intake zod schema (line 98)**
+- [ ] **Step 1: Replace `contact` with `email` + `phone` in zod schema (line 98)**
 
-After the existing `contact` field, add:
+Replace:
 ```ts
-phone: z.string().optional().describe("Phone number if provided"),
+contact: z.string().optional().describe("Email or phone if provided"),
 ```
 
-- [ ] **Step 2: Update notification email template (line 128 area)**
-
-Add phone to the email body, after the contact line:
+With:
+```ts
+email: z.string().optional().describe("Visitor's email address"),
+phone: z.string().optional().describe("Visitor's phone number"),
 ```
+
+- [ ] **Step 2: Update Hershey notification email (line 146)**
+
+Replace:
+```ts
+`Contact: ${args.contact ?? "—"}`,
+```
+
+With:
+```ts
+`Email: ${args.email ?? "—"}`,
 `Phone: ${args.phone ?? "—"}`,
 ```
 
-- [ ] **Step 3: Type check**
+- [ ] **Step 3: Update visitor confirmation email logic (line 161)**
+
+Replace:
+```ts
+if (args.contact && isEmail(args.contact)) {
+```
+
+With:
+```ts
+if (args.email && isEmail(args.email)) {
+```
+
+And update the `to:` field on line 162:
+```ts
+to: args.email,
+```
+
+- [ ] **Step 4: Fix Conversation Strategy tone (intake-system-prompt.ts)**
+
+Line 52 — replace sales language:
+```
+Old: `2. Close them — once they're engaged, naturally steer toward gathering their info`
+New: `2. Gather their info, once they're engaged, naturally ask for name, email, and phone`
+```
+
+Line 56 — soften the pushy close:
+```
+Old: `Guide toward: "This is exactly the kind of thing Hershey would dig into — let me get your info so he can follow up."`
+New: `Guide toward: "This is exactly the kind of thing Hershey would dig into. Let me grab your contact details so he can follow up."`
+```
+
+- [ ] **Step 5: Add nudge to collect both email and phone before wrapping**
+
+After the "What to Gather" list (after the new item 6), add:
+```
+Try to get both email and phone before wrapping up. If they give one, ask for the other.
+```
+
+- [ ] **Step 6: Type check**
 
 Run: `npx tsc --noEmit`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/app/api/chat/route.ts
-git commit -m "feat: add phone field to intake tool schema"
+git add src/app/api/chat/route.ts src/lib/intake-system-prompt.ts
+git commit -m "feat: split contact into email + phone, align tone in strategy section"
 ```
 
 ---

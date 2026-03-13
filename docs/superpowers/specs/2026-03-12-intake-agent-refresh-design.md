@@ -96,9 +96,19 @@ Update tone directives in `INTAKE_SYSTEM_PROMPT`:
 
 Everything else in the system prompt stays unchanged: conversation strategy, guardrails, wrapping-up behavior.
 
-### 5. Add phone field to complete_intake tool (route.ts)
+### 5. Split `contact` into `email` + `phone` in complete_intake tool (route.ts)
 
-Add a separate `phone` field to the `complete_intake` tool's zod schema (currently only has a single `contact` field for email). Include phone in the notification email template.
+Replace the single `contact` field with separate `email` and `phone` fields in the zod schema. Update all downstream logic:
+- Hershey's notification email: show Email and Phone as separate lines
+- Visitor confirmation email: check `args.email` instead of `args.contact`
+- Add nudge in system prompt: "Try to get both email and phone before wrapping up"
+
+### 6. Tone alignment in Guardrails & Conversation Strategy (intake-system-prompt.ts)
+
+The spec's tone changes only target the Tone & Style section, but the Guardrails and Conversation Strategy sections still have gatekeeper/sales language:
+- "Close them" (line 52) → "Gather their info"
+- "let me get your info" (line 56) → "Let me grab your contact details"
+These should be softened to match the new warm tone.
 
 ## Files Modified
 

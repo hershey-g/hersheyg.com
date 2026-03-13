@@ -34,12 +34,8 @@ export default function Nav() {
 
   const handleMobileLink = useCallback((href: string) => {
     setMenuOpen(false);
-    if (href === "#contact") {
-      window.dispatchEvent(new CustomEvent("open-intake-modal"));
-    } else {
-      const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }
+    const el = document.querySelector(href);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   return (
@@ -73,7 +69,7 @@ export default function Nav() {
             <li key={link.href}>
               {link.href === "#contact" ? (
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-intake-modal"))}
+                  onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
                   className="border border-line rounded-sm px-3.5 py-1.5 font-mono text-sm text-text hover:text-white hover:border-accent-lit transition-colors cursor-pointer"
                 >
                   {link.label}

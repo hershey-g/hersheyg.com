@@ -117,7 +117,7 @@ export default function Hero() {
           >
             <MagneticButton>
               <button
-                onClick={() => window.dispatchEvent(new CustomEvent("open-intake-modal"))}
+                onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
                 className="inline-flex items-center justify-center font-mono text-sm sm:text-base tracking-wide text-white bg-accent rounded-sm px-6 sm:px-7 py-3.5 hover:bg-accent-lit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit active:scale-[0.98] transition-[color,background-color,transform]"
               >
                 <span className="text-accent-lit mr-2" aria-hidden="true">❯</span>

@@ -32,7 +32,7 @@ export default function FloatingCTA() {
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.dispatchEvent(new CustomEvent("open-intake-modal"));
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (

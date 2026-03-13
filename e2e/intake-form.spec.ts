@@ -6,20 +6,18 @@ import {
 } from "./helpers/intake";
 
 /**
- * Open the intake overlay by clicking the hero CTA button.
- * Scoped to #hero to avoid matching the contact section CTA.
+ * Scroll to the inline contact section so the desktop terminal is visible.
  */
-async function openOverlay(page: import("@playwright/test").Page) {
-  const ctaButton = page.locator('#hero button:has-text("Start a conversation")');
-  await ctaButton.click();
-  // Wait for dialog to appear
-  await expect(page.getByRole("dialog", { name: "Project intake form" })).toBeVisible();
+async function scrollToContact(page: import("@playwright/test").Page) {
+  await page.evaluate(() =>
+    document.getElementById("contact")?.scrollIntoView({ behavior: "instant" })
+  );
 }
 
 // ---------------------------------------------------------------------------
-// 1. Desktop: overlay opens with greeting and accepts user input
+// 1. Desktop: inline terminal shows greeting and accepts user input
 // ---------------------------------------------------------------------------
-test("Desktop: overlay opens and sends message", async ({
+test("Desktop: inline terminal sends message", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Desktop only");
@@ -28,19 +26,17 @@ test("Desktop: overlay opens and sends message", async ({
   const requests = await mockChatAPI(page);
   await page.goto("/");
 
-  await openOverlay(page);
-
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
+  await scrollToContact(page);
 
   // Terminal title should be visible on desktop
-  await expect(dialog.getByText("~/intake-agent")).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText("~/intake-agent")).toBeVisible({ timeout: 5000 });
 
   // Send a message
-  await sendChatMessage(page, "I want to build an AI agent for customer support", dialog);
+  await sendChatMessage(page, "I want to build an AI agent for customer support");
 
   // User message should appear
   await expect(
-    dialog.getByText("I want to build an AI agent for customer support")
+    page.getByText("I want to build an AI agent for customer support")
   ).toBeVisible();
 
   // API should have been called
@@ -48,17 +44,25 @@ test("Desktop: overlay opens and sends message", async ({
 });
 
 // ---------------------------------------------------------------------------
-// 2. Mobile: overlay opens with greeting and chat input
+// 2. Mobile: tap-to-chat card opens fullscreen modal
 // ---------------------------------------------------------------------------
-test("Mobile: overlay opens and shows chat", async ({ page }, testInfo) => {
+test("Mobile: tap card opens modal and shows chat", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Mobile only");
   test.setTimeout(60_000);
 
   await mockChatAPI(page);
   await page.goto("/");
 
-  await openOverlay(page);
+  await scrollToContact(page);
+
+  // Tap the mobile prompt card
+  const tapCard = page.locator("button:has-text('Tap to start a conversation')");
+  await expect(tapCard).toBeVisible({ timeout: 5000 });
+  await tapCard.click();
+
+  // Modal should appear
   const dialog = page.getByRole("dialog", { name: "Project intake form" });
+  await expect(dialog).toBeVisible();
 
   // Chat input should be visible in the modal
   await expect(dialog.getByPlaceholder("Type a message...")).toBeVisible();
@@ -80,15 +84,14 @@ test("API error shows fallback email", async ({ page }, testInfo) => {
   await mockChatAPIError(page);
   await page.goto("/");
 
-  await openOverlay(page);
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
+  await scrollToContact(page);
 
   // Send a message that will trigger the error
-  await sendChatMessage(page, "Hello, I need help", dialog);
+  await sendChatMessage(page, "Hello, I need help");
 
   // Should show fallback email
   await expect(
-    dialog.locator('a[href="mailto:hello@hersheyg.com"]')
+    page.locator('a[href="mailto:hello@hersheyg.com"]')
   ).toBeVisible({ timeout: 10000 });
 });
 
@@ -101,17 +104,16 @@ test("Empty input cannot submit", async ({ page }, testInfo) => {
   await mockChatAPI(page);
   await page.goto("/");
 
-  await openOverlay(page);
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
+  await scrollToContact(page);
 
-  const sendBtn = dialog.getByRole("button", { name: "Send message" });
+  const sendBtn = page.getByRole("button", { name: "Send message" });
   await expect(sendBtn).toBeVisible();
 
   // Should be disabled when input is empty
   await expect(sendBtn).toBeDisabled();
 
   // Spaces-only should stay disabled
-  const input = dialog.getByPlaceholder("Type a message...");
+  const input = page.getByPlaceholder("Type a message...");
   await input.fill("   ");
   await expect(sendBtn).toBeDisabled();
 
@@ -151,44 +153,4 @@ test("No horizontal overflow on mobile", async ({ page }, testInfo) => {
   });
 
   expect(hasOverflow).toBe(false);
-});
-
-// ---------------------------------------------------------------------------
-// 6. ESC closes overlay
-// ---------------------------------------------------------------------------
-test("ESC closes overlay", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Desktop only");
-
-  await mockChatAPI(page);
-  await page.goto("/");
-
-  await openOverlay(page);
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
-  await expect(dialog).toBeVisible();
-
-  // Press ESC
-  await page.keyboard.press("Escape");
-
-  // Dialog should be gone
-  await expect(dialog).not.toBeVisible();
-});
-
-// ---------------------------------------------------------------------------
-// 7. Backdrop click closes overlay
-// ---------------------------------------------------------------------------
-test("Backdrop click closes overlay", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Desktop only");
-
-  await mockChatAPI(page);
-  await page.goto("/");
-
-  await openOverlay(page);
-  const dialog = page.getByRole("dialog", { name: "Project intake form" });
-  await expect(dialog).toBeVisible();
-
-  // Click the backdrop element directly (bypasses z-order stacking)
-  await page.locator('.overlay-backdrop').dispatchEvent('click');
-
-  // Dialog should be gone
-  await expect(dialog).not.toBeVisible();
 });

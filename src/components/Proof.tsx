@@ -99,7 +99,7 @@ export default function Proof() {
         <RevealOnScroll>
           <div className="mt-12 sm:mt-16 text-center">
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent("open-intake-modal"))}
+              onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
               className="inline-flex items-center font-mono text-sm text-accent-lit hover:text-white transition-colors group"
             >
               Want results like these? Let&apos;s talk

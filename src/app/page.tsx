@@ -4,7 +4,6 @@ import AnimatedHR from "@/components/AnimatedHR";
 import Services from "@/components/Services";
 import Proof from "@/components/Proof";
 import About from "@/components/About";
-import ContactSection from "@/components/ContactSection";
 import IntakeAgent from "@/components/IntakeAgent";
 import Footer from "@/components/Footer";
 import DotGrid from "@/components/DotGrid";
@@ -29,12 +28,11 @@ export default function Home() {
         <AnimatedHR />
         <About />
         <AnimatedHR />
-        <ContactSection />
+        <IntakeAgent />
       </main>
 
       <Footer />
       <FloatingCTA />
-      <IntakeAgent />
     </>
   );
 }

@@ -11,13 +11,11 @@ import { createPortal } from "react-dom";
 import {
   AnimatePresence,
   motion,
-  useInView,
   useReducedMotion,
 } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { INTAKE_GREETINGS } from "@/lib/intake-system-prompt";
-import { COPY } from "@/lib/constants";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Hooks: useFocusTrap, useScrollLock
@@ -276,7 +274,7 @@ function ChatInput({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   IntakeChatContent — shared between desktop embed and mobile modal
+   IntakeChatContent — modal content
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function IntakeChatContent({
@@ -305,58 +303,58 @@ function IntakeChatContent({
   const isActive = status === "streaming" || status === "submitted";
 
   return (
-    <div
-      className={`bg-surface ${
-        isModal
-          ? "flex flex-col h-full"
-          : "intake-border rounded-[14px] overflow-hidden h-[460px] flex flex-col"
-      }`}
-    >
+    <div className="bg-surface flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-line bg-bg/30 flex-shrink-0">
-        {!isModal && (
-          <>
-            <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
-            <span className="w-2.5 h-2.5 rounded-full bg-term-yellow" />
-            <span className="w-2.5 h-2.5 rounded-full bg-term-green" />
-          </>
-        )}
-        {isModal && (
-          <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs text-term-orange font-mono font-semibold">
-              H
-            </span>
-          </div>
-        )}
-        <span className="font-mono text-xs text-dim ml-1 sm:ml-2 flex-1">
-          {isModal ? "Intake Agent" : "~/intake-agent"}
-        </span>
-        {status === "submitted" && (
-          <span className="w-2 h-2 rounded-full bg-term-orange animate-pulse" />
-        )}
-        {status === "streaming" && (
-          <span className="w-2 h-2 rounded-full bg-term-green animate-pulse" />
-        )}
-        {isModal && onClose && (
-          <button
-            onClick={onClose}
-            className="ml-2 w-11 h-11 flex items-center justify-center rounded-lg text-text hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Close intake form"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        )}
+        <>
+          {/* Desktop header: traffic lights + title + ESC hint */}
+            <div className="hidden sm:flex items-center gap-2 w-full">
+              <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
+              <span className="w-2.5 h-2.5 rounded-full bg-term-yellow" />
+              <span className="w-2.5 h-2.5 rounded-full bg-term-green" />
+              <span className="font-mono text-xs text-dim ml-2 flex-1">~/intake-agent</span>
+              {status === "submitted" && (
+                <span className="w-2 h-2 rounded-full bg-term-orange animate-pulse" />
+              )}
+              {status === "streaming" && (
+                <span className="w-2 h-2 rounded-full bg-term-green animate-pulse" />
+              )}
+              <span className="font-mono text-[10px] text-dim/40">ESC to close</span>
+            </div>
+            {/* Mobile header: H badge + title + close button */}
+            <div className="flex sm:hidden items-center gap-2 w-full">
+              <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs text-term-orange font-mono font-semibold">H</span>
+              </div>
+              <span className="font-mono text-xs text-dim ml-1 flex-1">Intake Agent</span>
+              {status === "submitted" && (
+                <span className="w-2 h-2 rounded-full bg-term-orange animate-pulse" />
+              )}
+              {status === "streaming" && (
+                <span className="w-2 h-2 rounded-full bg-term-green animate-pulse" />
+              )}
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="ml-2 w-11 h-11 flex items-center justify-center rounded-lg text-text hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Close intake form"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </div>
+        </>
       </div>
 
       {/* Chat body */}
@@ -436,7 +434,7 @@ function IntakeChatContent({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Modal — rendered via React Portal
+   Modal — rendered via React Portal, all breakpoints
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function IntakeModal({
@@ -477,53 +475,50 @@ function IntakeModal({
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <>
+        <motion.div
+          key="intake-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
           {/* Backdrop */}
-          <motion.div
-            key="intake-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] bg-black/60 md:hidden"
+          <div
+            className="fixed inset-0 z-[70] overlay-backdrop"
             onClick={onClose}
+            role="presentation"
           />
-          {/* Modal */}
-          <motion.div
-            key="intake-modal"
-            ref={modalRef}
-            initial={
-              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }
-            }
-            animate={
-              prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
-            }
-            exit={
-              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: "100%" }
-            }
-            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="fixed inset-0 z-[61] md:hidden flex flex-col"
-            style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Project intake form"
-          >
-            <IntakeChatContent
-              chatRef={chatRef}
-              messages={messages}
-              status={status}
-              input={input}
-              setInput={setInput}
-              onSendMessage={onSendMessage}
-              onClose={onClose}
-              isModal
-              error={error}
-              onChipSelect={onChipSelect}
-            />
-          </motion.div>
-        </>
+          {/* Overlay container — pointer-events-none so clicks pass to backdrop */}
+          <div className="fixed inset-0 z-[71] sm:flex sm:items-center sm:justify-center sm:p-6 pointer-events-none">
+            <motion.div
+              ref={modalRef}
+              initial={prefersReducedMotion ? false : { scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={prefersReducedMotion ? {} : { scale: 0.95 }}
+              transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-[100dvh] sm:h-auto sm:max-h-[70vh] w-full sm:max-w-[600px] sm:rounded-xl overflow-hidden flex flex-col pointer-events-auto"
+              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Project intake form"
+            >
+              <IntakeChatContent
+                chatRef={chatRef}
+                messages={messages}
+                status={status}
+                input={input}
+                setInput={setInput}
+                onSendMessage={onSendMessage}
+                onClose={onClose}
+                isModal
+                error={error}
+                onChipSelect={onChipSelect}
+              />
+            </motion.div>
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body
@@ -531,11 +526,10 @@ function IntakeModal({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Main Component
+   Main Component — overlay only, no section wrapper
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function IntakeAgent() {
-  // Static initial greeting — no API call needed
   const [greeting] = useState(() =>
     INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
   );
@@ -548,13 +542,7 @@ export default function IntakeAgent() {
     },
   ];
 
-  const {
-    messages,
-    sendMessage,
-    status,
-    error,
-    setMessages,
-  } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     messages: initialMessages,
     onError: (err) => {
       console.error("Chat error:", err);
@@ -563,31 +551,22 @@ export default function IntakeAgent() {
 
   const [input, setInput] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const desktopChatRef = useRef<HTMLDivElement>(null);
-  const modalChatRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const chatRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const userScrolledUpRef = useRef(false);
 
-  // Auto-scroll helper — instant during streaming, respects user scroll-up
-  const scrollToBottom = useCallback(
-    (force = false) => {
-      requestAnimationFrame(() => {
-        [desktopChatRef.current, modalChatRef.current].forEach((el) => {
-          if (!el) return;
-          const isNearBottom =
-            el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-          if (force || isNearBottom || !userScrolledUpRef.current) {
-            el.scrollTop = el.scrollHeight;
-            userScrolledUpRef.current = false;
-          }
-        });
-      });
-    },
-    []
-  );
+  // Auto-scroll helper
+  const scrollToBottom = useCallback((force = false) => {
+    requestAnimationFrame(() => {
+      const el = chatRef.current;
+      if (!el) return;
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      if (force || isNearBottom || !userScrolledUpRef.current) {
+        el.scrollTop = el.scrollHeight;
+        userScrolledUpRef.current = false;
+      }
+    });
+  }, []);
 
   // Track user scroll-up
   useEffect(() => {
@@ -597,16 +576,9 @@ export default function IntakeAgent() {
         el.scrollHeight - el.scrollTop - el.clientHeight < 100;
       userScrolledUpRef.current = !isNearBottom;
     };
-
-    const desktop = desktopChatRef.current;
-    const modal = modalChatRef.current;
-    desktop?.addEventListener("scroll", handleScroll, { passive: true });
-    modal?.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      desktop?.removeEventListener("scroll", handleScroll);
-      modal?.removeEventListener("scroll", handleScroll);
-    };
+    const el = chatRef.current;
+    el?.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el?.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Auto-scroll on messages/status changes
@@ -617,9 +589,7 @@ export default function IntakeAgent() {
   // Send message handler
   const handleSendMessage = useCallback(() => {
     const trimmed = input.trim();
-    if (!trimmed) return;
-    if (status === "streaming" || status === "submitted") return;
-
+    if (!trimmed || status === "streaming" || status === "submitted") return;
     setInput("");
     sendMessage({ text: trimmed });
     userScrolledUpRef.current = false;
@@ -634,113 +604,28 @@ export default function IntakeAgent() {
     [status, sendMessage]
   );
 
-  // Mobile: listen for open-intake-modal custom event
+  // Listen for open-intake-modal custom event
   useEffect(() => {
     const handler = () => setModalOpen(true);
     window.addEventListener("open-intake-modal", handler);
     return () => window.removeEventListener("open-intake-modal", handler);
   }, []);
 
-  const closeModal = useCallback(() => {
-    setModalOpen(false);
-  }, []);
-
-  // Suppress rendering until section is in view (desktop auto-scroll trigger is purely visual)
-  const showDesktop = isInView;
+  const closeModal = useCallback(() => setModalOpen(false), []);
 
   return (
-    <>
-      {/* Embedded section */}
-      <section className="py-14 sm:py-24 sm:pb-14 bg-bg-2/30" ref={sectionRef}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="w-full max-w-[900px] mx-auto">
-            <p className="font-mono text-[13px] font-medium tracking-widest uppercase text-accent-lit mb-5 sm:mb-6">
-              03 // CONTACT
-            </p>
-
-            <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4 sm:mb-5">
-              {COPY.contact.heading}
-            </h2>
-
-            <p className="text-base sm:text-[17px] text-dim leading-relaxed max-w-[540px] mb-10 sm:mb-12">
-              {COPY.contact.sub}
-            </p>
-
-            <div id="contact" className="scroll-mt-20" />
-
-            {/* Desktop terminal — hidden on mobile */}
-            {showDesktop && (
-              <div className="hidden md:block mb-6">
-                <IntakeChatContent
-                  chatRef={desktopChatRef}
-                  messages={messages}
-                  status={status}
-                  input={input}
-                  setInput={setInput}
-                  onSendMessage={handleSendMessage}
-                  error={error}
-                  onChipSelect={handleChipSelect}
-                />
-              </div>
-            )}
-
-            {/* Mobile prompt — tap to open fullscreen */}
-            <div className="md:hidden mb-6">
-              <button
-                onClick={() => setModalOpen(true)}
-                className="w-full bg-surface border border-line rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
-              >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center">
-                    <span className="text-xs text-term-orange font-mono font-semibold">
-                      H
-                    </span>
-                  </div>
-                  <span className="font-mono text-[13px] text-text">
-                    Intake Agent
-                  </span>
-                </div>
-                <p className="font-mono text-[13px] text-dim leading-relaxed">
-                  Tap to start a conversation. I&apos;ll help you figure out
-                  what to build and connect you with Hershey.
-                </p>
-                <span className="inline-block mt-3 font-mono text-xs text-accent-lit group-hover:translate-x-1 transition-transform">
-                  Open chat →
-                </span>
-              </button>
-            </div>
-
-            {/* Footer */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 font-mono text-[13px] text-dim">
-                <span className="w-1.5 h-1.5 rounded-full bg-term-success animate-pulse" />
-                Typical reply time: under 24h
-              </div>
-              <a
-                href="mailto:hello@hersheyg.com?subject=Project%20Inquiry"
-                className="font-mono text-[13px] text-dim hover:text-accent-lit transition-colors"
-              >
-                hello@hersheyg.com →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Fullscreen mobile modal */}
-      <IntakeModal
-        isOpen={modalOpen}
-        chatRef={modalChatRef}
-        messages={messages}
-        status={status}
-        input={input}
-        setInput={setInput}
-        onSendMessage={handleSendMessage}
-        onClose={closeModal}
-        prefersReducedMotion={prefersReducedMotion ?? false}
-        error={error}
-        onChipSelect={handleChipSelect}
-      />
-    </>
+    <IntakeModal
+      isOpen={modalOpen}
+      chatRef={chatRef}
+      messages={messages}
+      status={status}
+      input={input}
+      setInput={setInput}
+      onSendMessage={handleSendMessage}
+      onClose={closeModal}
+      prefersReducedMotion={prefersReducedMotion ?? false}
+      error={error}
+      onChipSelect={handleChipSelect}
+    />
   );
 }

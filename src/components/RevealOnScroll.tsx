@@ -17,7 +17,7 @@ export default function RevealOnScroll({
   variant = "default",
 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-60px" });
+  const isInView = useInView(ref, { once: true, margin: "-20px" });
   const prefersReducedMotion = useReducedMotion();
 
   const initial =

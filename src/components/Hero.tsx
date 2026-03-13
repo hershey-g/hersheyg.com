@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { COPY, HERO_VARIANTS } from "@/lib/constants";
 import TextScramble from "@/components/TextScramble";
 import Terminal from "@/components/Terminal";
@@ -14,10 +14,25 @@ export default function Hero() {
 
   // Deterministic initial value avoids hydration mismatch (#418).
   // useEffect swaps in a random variant on mount; TextScramble masks the change.
-  const [variant, setVariant] = useState(HERO_VARIANTS[0]);
+  const [variantIndex, setVariantIndex] = useState(0);
+  const initializedRef = useRef(false);
+  const [hasRotated, setHasRotated] = useState(false);
+
   useEffect(() => {
-    setVariant(HERO_VARIANTS[Math.floor(Math.random() * HERO_VARIANTS.length)]);
+    if (!initializedRef.current) {
+      setVariantIndex(Math.floor(Math.random() * HERO_VARIANTS.length));
+      initializedRef.current = true;
+    }
+
+    const interval = setInterval(() => {
+      setHasRotated(true);
+      setVariantIndex((prev) => (prev + 1) % HERO_VARIANTS.length);
+    }, 10_000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  const variant = HERO_VARIANTS[variantIndex];
 
   return (
     <section id="hero" className="relative flex min-h-0 lg:min-h-screen items-center pt-24 pb-10 lg:pt-0 lg:pb-0 px-6">
@@ -26,7 +41,7 @@ export default function Hero() {
         <div>
           {/* Eyebrow */}
           <motion.div
-            className="group flex items-center gap-3 mb-5 sm:mb-6"
+            className="group flex items-center gap-3 mb-8 sm:mb-10"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -48,22 +63,30 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <TextScramble text={variant.headline} />
+            <TextScramble key={variantIndex} text={variant.headline} />
           </motion.h1>
 
-          {/* Sub-copy */}
-          <motion.p
-            className="mt-4 sm:mt-5 text-base sm:text-lg text-body leading-relaxed max-w-[520px]"
-            initial={noMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            {variant.sub}
-          </motion.p>
+          {/* Sub-copy — entrance stagger on first load, AnimatePresence fade on rotation */}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={variantIndex}
+              className="mt-6 sm:mt-8 text-base sm:text-lg text-body leading-relaxed max-w-[520px]"
+              initial={noMotion ? false : hasRotated ? { opacity: 0, y: 10 } : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={noMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+              transition={
+                hasRotated
+                  ? { duration: noMotion ? 0 : 0.4, ease: [0.25, 0.1, 0.25, 1] }
+                  : { delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }
+              }
+            >
+              {variant.sub}
+            </motion.p>
+          </AnimatePresence>
 
           {/* CTA row */}
           <motion.div
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 mt-6 sm:mt-7"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 mt-8 sm:mt-10"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -71,12 +94,9 @@ export default function Hero() {
             <MagneticButton>
               <a
                 href="#contact"
-                className="group inline-flex items-center justify-center gap-2 font-mono text-sm sm:text-base tracking-wide text-white bg-accent rounded-sm px-6 sm:px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit"
+                className="inline-flex items-center justify-center font-mono text-sm sm:text-base tracking-wide text-white bg-accent rounded-sm px-6 sm:px-7 py-3.5 hover:bg-accent-lit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lit"
               >
                 {COPY.hero.cta}
-                <span className="inline-block transition-transform group-hover:translate-x-1" aria-hidden="true">
-                  →
-                </span>
               </a>
             </MagneticButton>
 
@@ -84,7 +104,7 @@ export default function Hero() {
 
           {/* Terminal compact - mobile only, below CTAs */}
           <motion.div
-            className="mt-5 block lg:hidden"
+            className="mt-8 block lg:hidden"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}

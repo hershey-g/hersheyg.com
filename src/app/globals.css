@@ -14,6 +14,7 @@
   --color-surface: oklch(0.17 0.01 260);
 
   --color-term-green: #22c55e;
+  --color-term-green-soft: #86efac;
   --color-term-red: #ef4444;
   --color-term-yellow: #eab308;
   --color-term-orange: #f59e42;
@@ -109,6 +110,24 @@ body::after {
   animation: rotate-border 6s linear infinite;
 }
 
+/* -- Intake animated border -- */
+.intake-border {
+  --border-angle: 0deg;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      var(--color-term-green) 0%,
+      var(--color-term-orange) 15%,
+      transparent 30%,
+      transparent 70%,
+      var(--color-accent-lit) 85%,
+      var(--color-term-green) 100%
+    ) border-box;
+  animation: rotate-border 8s linear infinite;
+}
+
 /* -- Animated HR streak -- */
 @keyframes streak {
   0% {
@@ -151,10 +170,10 @@ body::after {
   animation: intake-fade-up 0.3s ease both;
 }
 
-/* Intake agent typing dots */
-@keyframes intake-bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
+/* Intake agent thinking shimmer */
+@keyframes intake-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }
 
 /* Intake agent scrollbar */

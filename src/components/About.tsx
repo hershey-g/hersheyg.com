@@ -1,10 +1,35 @@
 "use client";
 
+import { useRef } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { COPY } from "@/lib/constants";
 import SectionTag from "./SectionTag";
 import SectionHead from "./SectionHead";
 import RevealOnScroll from "./RevealOnScroll";
 import Parallax from "./Parallax";
+
+function ScrollRevealPhoto({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const noMotion = !!useReducedMotion();
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "center center"],
+  });
+  const clipBottom = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  const clipPath = useTransform(clipBottom, (v) => `inset(0 0 ${v}% 0)`);
+  const scale = useTransform(scrollYProgress, [0, 1], [1.08, 1]);
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      style={noMotion ? {} : { clipPath, scale }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function PhotoPlaceholder({ className }: { className?: string }) {
   return (
@@ -45,7 +70,7 @@ export default function About() {
         </Parallax>
 
         {/* Desktop two-column grid */}
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 lg:gap-16 items-start">
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 lg:gap-16 items-center">
           {/* Text column */}
           <RevealOnScroll>
             {/* Accent line */}
@@ -62,15 +87,15 @@ export default function About() {
           </RevealOnScroll>
 
           {/* Photo column — desktop only */}
-          <RevealOnScroll>
+          <ScrollRevealPhoto>
             <PhotoPlaceholder className="hidden lg:flex w-[300px] h-[380px]" />
-          </RevealOnScroll>
+          </ScrollRevealPhoto>
         </div>
 
         {/* Photo — mobile only, stacks below text */}
-        <RevealOnScroll>
+        <ScrollRevealPhoto>
           <PhotoPlaceholder className="lg:hidden w-full h-[240px] mt-10" />
-        </RevealOnScroll>
+        </ScrollRevealPhoto>
       </div>
     </section>
   );

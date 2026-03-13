@@ -22,7 +22,7 @@ export default function Hero() {
     target: sectionRef,
     offset: ["start start", "end start"],
   });
-  const glowY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  const glowY = useTransform(scrollYProgress, [0, 1], [0, 120]);
 
   const headlineParts = COPY.hero.headline.split("\n");
 

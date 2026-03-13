@@ -117,7 +117,7 @@ function SuggestionChips({
               : { opacity: 0, height: 0, marginTop: 0 }
           }
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
-          className="overflow-hidden mb-4 px-7 pb-5"
+          className="overflow-hidden mt-3"
         >
           <div className="grid grid-cols-2 gap-2.5">
             {SUGGESTION_CHIPS.map((chip) => (
@@ -333,13 +333,13 @@ export default function IntakeAgent() {
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Suggestion chips — rendered outside scroll area, inside container */}
-          <SuggestionChips
-            onSelect={handleChipSelect}
-            visible={messages.length === 1 && messages[0]?.role === "assistant"}
-          />
+            {/* Suggestion chips — inside scroll area so they don't steal space */}
+            <SuggestionChips
+              onSelect={handleChipSelect}
+              visible={messages.length === 1 && messages[0]?.role === "assistant"}
+            />
+          </div>
 
           {/* Input bar */}
           <ChatInput

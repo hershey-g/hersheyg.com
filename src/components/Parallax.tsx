@@ -18,7 +18,7 @@ export default function Parallax({ children, speed = 0.95, className }: Parallax
     offset: ["start end", "end start"],
   });
 
-  const range = (1 - speed) * 200;
+  const range = (1 - speed) * 800;
   const y = useTransform(scrollYProgress, [0, 1], [range, -range]);
 
   if (prefersReducedMotion) {

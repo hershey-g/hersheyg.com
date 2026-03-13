@@ -111,7 +111,8 @@ This conversation is approaching the message limit. You MUST wrap up now. If you
           timeline: z.string().optional().describe("When they need it"),
           budget: z.string().optional().describe("Budget range if mentioned"),
           name: z.string().optional().describe("Visitor's name if provided"),
-          contact: z.string().optional().describe("Email or phone if provided"),
+          email: z.string().optional().describe("Visitor's email address"),
+          phone: z.string().optional().describe("Visitor's phone number"),
         }),
         execute: async (args) => {
           const ref = generateRef();
@@ -143,7 +144,8 @@ This conversation is approaching the message limit. You MUST wrap up now. If you
                 `Budget: ${args.budget ?? "—"}`,
                 "",
                 `Name: ${args.name ?? "—"}`,
-                `Contact: ${args.contact ?? "—"}`,
+                `Email: ${args.email ?? "—"}`,
+                `Phone: ${args.phone ?? "—"}`,
                 "",
                 "---",
                 "Full conversation:",
@@ -158,10 +160,10 @@ This conversation is approaching the message limit. You MUST wrap up now. If you
             });
 
             // Confirmation to visitor if they provided an email
-            if (args.contact && isEmail(args.contact)) {
+            if (args.email && isEmail(args.email)) {
               await resend.emails.send({
                 from: "Hershey Goldberger <onboarding@resend.dev>",
-                to: args.contact,
+                to: args.email,
                 subject: `Got your brief — ref ${ref}`,
                 text: [
                   `Hey ${args.name ?? "there"},`,

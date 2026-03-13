@@ -183,6 +183,53 @@ function UserMessage({ message }: { message: UIMessage }) {
   );
 }
 
+const SUGGESTION_CHIPS = [
+  "I want to build an AI agent",
+  "I have a project idea",
+  "Tell me about your work",
+  "Just exploring",
+] as const;
+
+function SuggestionChips({
+  onSelect,
+  visible,
+}: {
+  onSelect: (text: string) => void;
+  visible: boolean;
+}) {
+  const prefersReducedMotion = useReducedMotion();
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 1, height: "auto", marginTop: 0 }}
+          exit={
+            prefersReducedMotion
+              ? { opacity: 0 }
+              : { opacity: 0, height: 0, marginTop: 0 }
+          }
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
+          className="overflow-hidden ml-[38px] mb-4"
+        >
+          <div className="flex flex-wrap gap-2">
+            {SUGGESTION_CHIPS.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => onSelect(chip)}
+                className="font-mono text-[12px] px-3 py-1.5 rounded-full border border-accent/30 bg-accent/15 text-dim hover:text-text hover:bg-accent/25 hover:border-accent/40 transition-colors whitespace-nowrap"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function ChatInput({
   input,
   setInput,
@@ -242,6 +289,7 @@ function IntakeChatContent({
   onClose,
   isModal,
   error,
+  onChipSelect,
 }: {
   chatRef: RefObject<HTMLDivElement | null>;
   messages: UIMessage[];
@@ -252,6 +300,7 @@ function IntakeChatContent({
   onClose?: () => void;
   isModal?: boolean;
   error?: Error;
+  onChipSelect?: (text: string) => void;
 }) {
   const isActive = status === "streaming" || status === "submitted";
 
@@ -338,6 +387,12 @@ function IntakeChatContent({
           return null;
         })}
 
+        {/* Suggestion chips — shown only when greeting is the sole message */}
+        <SuggestionChips
+          onSelect={(text) => onChipSelect?.(text)}
+          visible={messages.length === 1 && messages[0]?.role === "assistant"}
+        />
+
         {/* Typing dots when waiting for first text chunk */}
         {isActive &&
           (messages.length === 0 ||
@@ -395,6 +450,7 @@ function IntakeModal({
   onClose,
   prefersReducedMotion,
   error,
+  onChipSelect,
 }: {
   isOpen: boolean;
   chatRef: RefObject<HTMLDivElement | null>;
@@ -406,6 +462,7 @@ function IntakeModal({
   onClose: () => void;
   prefersReducedMotion: boolean | null;
   error?: Error;
+  onChipSelect: (text: string) => void;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -463,6 +520,7 @@ function IntakeModal({
               onClose={onClose}
               isModal
               error={error}
+              onChipSelect={onChipSelect}
             />
           </motion.div>
         </>
@@ -567,6 +625,15 @@ export default function IntakeAgent() {
     userScrolledUpRef.current = false;
   }, [input, status, sendMessage]);
 
+  const handleChipSelect = useCallback(
+    (text: string) => {
+      if (status === "streaming" || status === "submitted") return;
+      sendMessage({ text });
+      userScrolledUpRef.current = false;
+    },
+    [status, sendMessage]
+  );
+
   // Mobile: listen for open-intake-modal custom event
   useEffect(() => {
     const handler = () => setModalOpen(true);
@@ -612,6 +679,7 @@ export default function IntakeAgent() {
                   setInput={setInput}
                   onSendMessage={handleSendMessage}
                   error={error}
+                  onChipSelect={handleChipSelect}
                 />
               </div>
             )}
@@ -671,6 +739,7 @@ export default function IntakeAgent() {
         onClose={closeModal}
         prefersReducedMotion={prefersReducedMotion ?? false}
         error={error}
+        onChipSelect={handleChipSelect}
       />
     </>
   );

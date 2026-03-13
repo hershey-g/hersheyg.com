@@ -6,8 +6,11 @@ function getDb() {
   return neon(url);
 }
 
+let tableEnsured = false;
+
 /** Create the conversations table if it doesn't exist. */
 export async function ensureTable() {
+  if (tableEnsured) return;
   const sql = getDb();
   await sql`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -20,6 +23,7 @@ export async function ensureTable() {
       updated_at TIMESTAMPTZ DEFAULT now()
     )
   `;
+  tableEnsured = true;
 }
 
 /** Insert a conversation record. Returns the ref. */

@@ -8,7 +8,7 @@ import { getRateLimiter } from "@/lib/rate-limit";
 
 const MAX_MESSAGES = 30;
 const MAX_INPUT_LENGTH = 2000;
-const MODEL = process.env.CHAT_MODEL ?? "claude-opus-4-6";
+const MODEL = process.env.CHAT_MODEL ?? "claude-sonnet-4-6";
 
 function generateRef() {
   return "#PRJ-" + Math.floor(1000 + Math.random() * 9000);
@@ -44,8 +44,24 @@ export async function POST(request: Request) {
     // Fail open — allow request through if rate limiter errors
   }
 
-  const body = await request.json();
-  let messages: UIMessage[] = body.messages ?? [];
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Invalid request body" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!body || typeof body !== "object" || !Array.isArray((body as Record<string, unknown>).messages)) {
+    return new Response(
+      JSON.stringify({ error: "Invalid request: messages array required" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  let messages: UIMessage[] = (body as { messages: UIMessage[] }).messages;
 
   // Enforce max conversation length
   if (messages.length > MAX_MESSAGES) {
@@ -57,7 +73,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Sanitize: truncate last user message
+  // Sanitize: truncate all user messages to max length
   messages = messages.map((msg) => {
     if (msg.role === "user") {
       return {

@@ -44,7 +44,7 @@ export default function Hero() {
             className="group flex items-center gap-3 mb-8 sm:mb-10"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <span
               className="h-px w-8 bg-accent-lit transition-[width] duration-300 ease-out group-hover:w-12"
@@ -59,9 +59,9 @@ export default function Hero() {
           <motion.h1
             className="text-[clamp(2.25rem,8vw,4.25rem)] lg:text-[clamp(2.75rem,5.5vw,4.25rem)] font-extrabold text-white tracking-tight leading-[1.08]"
             style={{ letterSpacing: '-0.035em' }}
-            initial={noMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            initial={noMotion ? false : { y: 12 }}
+            animate={{ y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <TextScramble key={variantIndex} text={variant.headline} />
           </motion.h1>
@@ -77,7 +77,7 @@ export default function Hero() {
               transition={
                 hasRotated
                   ? { duration: noMotion ? 0 : 0.4, ease: [0.25, 0.1, 0.25, 1] }
-                  : { delay: 1.0, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }
+                  : { delay: 0.4, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }
               }
             >
               {variant.sub}
@@ -89,7 +89,7 @@ export default function Hero() {
             className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6 mt-8 sm:mt-10"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ delay: 0.55, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <MagneticButton>
               <a
@@ -107,7 +107,7 @@ export default function Hero() {
             className="mt-8 block lg:hidden"
             initial={noMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.4, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ delay: 0.7, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <TerminalCompact />
           </motion.div>
@@ -119,7 +119,7 @@ export default function Hero() {
           className="hidden lg:block"
           initial={noMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.4, duration: 0.8 }}
+          transition={{ delay: 0.7, duration: 0.6 }}
         >
           <Terminal />
         </motion.div>

@@ -71,7 +71,7 @@ export default function TextScramble({ text }: TextScrambleProps) {
     // Delay before starting scramble
     const timeout = setTimeout(() => {
       cleanupRef.current = scramble();
-    }, 600);
+    }, 100);
 
     return () => {
       clearTimeout(timeout);

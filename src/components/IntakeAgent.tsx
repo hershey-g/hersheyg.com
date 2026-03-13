@@ -119,13 +119,13 @@ function SuggestionChips({
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
           className="overflow-hidden mt-3"
         >
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
             {SUGGESTION_CHIPS.map((chip) => (
               <button
                 key={chip}
                 type="button"
                 onClick={() => onSelect(chip)}
-                className="border border-line rounded-lg px-4 py-3.5 text-left font-mono text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
+                className="border border-line rounded-md sm:rounded-lg px-2.5 py-2.5 sm:px-4 sm:py-3.5 text-left font-mono text-[11px] sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
               >
                 {chip}
               </button>
@@ -260,17 +260,17 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-screen flex flex-col bg-bg scroll-mt-20"
+      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
       {/* Section header */}
-      <div className="text-center pt-20 pb-8 px-6 sm:px-12">
+      <div className="text-center pt-12 sm:pt-20 pb-4 sm:pb-8 px-6 sm:px-12">
         <p className="font-mono text-xs tracking-widest uppercase text-accent-lit mb-5">
           {COPY.contact.tag}
         </p>
-        <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-4">
+        <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-2 sm:mb-4">
           {COPY.contact.heading}
         </h2>
-        <p className="text-base text-dim leading-relaxed max-w-[540px] mx-auto mb-3">
+        <p className="text-base text-dim leading-relaxed max-w-[540px] mx-auto mb-1.5 sm:mb-3">
           {COPY.contact.sub}
         </p>
         <p className="text-sm text-dim leading-relaxed max-w-[540px] mx-auto">
@@ -279,7 +279,7 @@ export default function IntakeAgent() {
       </div>
 
       {/* Chat container */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-12">
+      <div className="flex-1 flex items-center justify-center px-6 pb-6 sm:pb-12">
         <div className="max-w-[680px] w-full bg-bg-2 border border-line rounded-xl overflow-hidden flex flex-col md:h-[420px]">
           {/* Messages area */}
           <div

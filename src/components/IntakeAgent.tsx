@@ -5,6 +5,7 @@ import {
   useRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
@@ -88,7 +89,7 @@ function useFocusTrap(
 }
 
 function useScrollLock(isLocked: boolean) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isLocked) return;
 
     const scrollY = window.scrollY;
@@ -501,8 +502,10 @@ function IntakeModal({
   useFocusTrap(modalRef, isOpen, onClose);
   useScrollLock(isOpen);
 
-  // Track visual viewport height to handle virtual keyboard on mobile
-  useEffect(() => {
+  // Track visual viewport height to handle virtual keyboard on mobile.
+  // useLayoutEffect ensures --app-vh is set before the first paint,
+  // preventing a height shift from the 100dvh fallback.
+  useLayoutEffect(() => {
     if (!isOpen) return;
 
     const vv = window.visualViewport;
@@ -634,6 +637,13 @@ export default function IntakeAgent() {
     },
     []
   );
+
+  // Scroll modal to bottom on open so chat doesn't start at top
+  useLayoutEffect(() => {
+    if (!modalOpen) return;
+    const el = modalChatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [modalOpen]);
 
   // Track user scroll-up — re-run when modal opens so modalChatRef is attached
   useEffect(() => {

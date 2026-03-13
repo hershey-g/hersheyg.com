@@ -146,13 +146,13 @@ function AgentMessage({
         </span>
       </div>
       <div
-        className="bg-bg/60 border border-term-green/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]"
+        className="bg-accent/40 border border-accent/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]"
         style={{ minHeight: "2.5rem", overflowWrap: "break-word" }}
       >
         {isStreaming && !hasText ? (
           <ThinkingIndicator />
         ) : (
-          <p className="text-[13px] leading-relaxed text-term-green-soft font-mono whitespace-pre-line">
+          <p className="text-[13px] leading-relaxed text-text font-mono whitespace-pre-line">
             {message?.parts.map((part, i) => {
               if (part.type === "text") return <span key={i}>{part.text}</span>;
               // Hide tool invocations from UI
@@ -171,8 +171,8 @@ function AgentMessage({
 function UserMessage({ message }: { message: UIMessage }) {
   return (
     <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-accent-lit/10 border border-accent-lit/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
-        <p className="text-[13px] leading-relaxed text-accent-lit font-mono">
+      <div className="bg-accent-lit/15 border border-accent-lit/30 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+        <p className="text-[13px] leading-relaxed text-white font-mono">
           {message.parts.map((part, i) => {
             if (part.type === "text") return <span key={i}>{part.text}</span>;
             return null;
@@ -204,7 +204,7 @@ function ChatInput({
   };
 
   return (
-    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-term-green/15 bg-bg/30 flex-shrink-0">
+    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-line bg-bg/30 flex-shrink-0">
       <input
         ref={inputRef}
         type="text"
@@ -212,7 +212,7 @@ function ChatInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-term-green/20 rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
+        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
       />
       <button
         onClick={onSubmit}
@@ -264,7 +264,7 @@ function IntakeChatContent({
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-term-green/15 bg-bg/30 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-line bg-bg/30 flex-shrink-0">
         {!isModal && (
           <>
             <span className="w-2.5 h-2.5 rounded-full bg-term-red" />
@@ -620,7 +620,7 @@ export default function IntakeAgent() {
             <div className="md:hidden mb-6">
               <button
                 onClick={() => setModalOpen(true)}
-                className="w-full bg-surface border border-term-green/20 rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
+                className="w-full bg-surface border border-line rounded-[14px] p-5 text-left group hover:border-accent-lit/40 active:scale-[0.99] transition-[color,border-color,transform]"
               >
                 <div className="flex items-center gap-2.5 mb-3">
                   <div className="w-7 h-7 rounded-md bg-term-orange/10 border border-term-orange/25 flex items-center justify-center">

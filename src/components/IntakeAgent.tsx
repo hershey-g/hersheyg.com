@@ -14,7 +14,7 @@ import {
 } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
-import { INTAKE_GREETINGS } from "@/lib/intake-system-prompt";
+import { INTAKE_GREETINGS, INTAKE_CHIP_POOL } from "@/lib/intake-system-prompt";
 import { COPY } from "@/lib/constants";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -36,26 +36,14 @@ function ThinkingIndicator() {
   );
 
   return (
-    <div className="flex flex-col gap-1.5 py-1" role="status" aria-label="Agent is thinking">
-      <div className="w-[120px] h-[3px] rounded-full bg-term-green/15 overflow-hidden relative">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(90deg, transparent, oklch(0.72 0.19 145 / 0.8), transparent)",
-            animation: "intake-shimmer 1.5s ease-in-out infinite",
-          }}
-        />
-      </div>
-      <span className="text-[11px] font-mono text-term-green/80 flex items-center gap-1">
-        <span
-          className="text-term-green"
-          style={{ animation: "intake-plus-pulse 2s ease-in-out infinite" }}
-        >
-          +
-        </span>
+    <p className="text-[13px] font-mono flex items-center gap-1.5" role="status" aria-label="Agent is thinking">
+      <span className="text-term-green" style={{ animation: "intake-thinking-pulse 2s ease-in-out infinite" }}>
+        &gt;
+      </span>
+      <span className="text-term-green/70" style={{ animation: "intake-thinking-pulse 2s ease-in-out infinite" }}>
         {verb}
       </span>
-    </div>
+    </p>
   );
 }
 
@@ -108,19 +96,30 @@ function UserMessage({ message }: { message: UIMessage }) {
   );
 }
 
-const SUGGESTION_CHIPS = [
-  "I want to build an AI agent",
-  "I have a project idea",
-  "Tell me about your work",
-  "Just exploring",
-] as const;
+function selectChips(): string[] {
+  const now = new Date();
+  const day = now.getUTCDate();
+  const hour = now.getUTCHours();
+  // 3 time-of-day buckets: morning (0-7), afternoon (8-15), evening (16-23)
+  const bucket = Math.floor(hour / 8);
+  const seed = day * 3 + bucket;
+
+  // Seeded pick: use seed to select one chip from each category
+  const categories = Object.values(INTAKE_CHIP_POOL);
+  return categories.map((chips, i) => {
+    const index = (seed + i * 7) % chips.length;
+    return chips[index];
+  });
+}
 
 function SuggestionChips({
   onSelect,
   visible,
+  chips,
 }: {
   onSelect: (text: string) => void;
   visible: boolean;
+  chips: string[];
 }) {
   const prefersReducedMotion = useReducedMotion();
 
@@ -138,7 +137,7 @@ function SuggestionChips({
           className="overflow-hidden mt-3"
         >
           <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-            {SUGGESTION_CHIPS.map((chip) => (
+            {chips.map((chip) => (
               <button
                 key={chip}
                 type="button"
@@ -209,6 +208,8 @@ export default function IntakeAgent() {
     const day = new Date().getUTCDate();
     return INTAKE_GREETINGS[day % INTAKE_GREETINGS.length];
   });
+
+  const chips = useMemo(() => selectChips(), []);
 
   const initialMessages: UIMessage[] = [
     {
@@ -300,7 +301,7 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex flex-col items-center px-6 pb-6 sm:pb-12">
-        <div className="max-w-[680px] w-full overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-lg overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
           {/* Messages area */}
           <div
             ref={chatRef}
@@ -353,6 +354,7 @@ export default function IntakeAgent() {
             <SuggestionChips
               onSelect={handleChipSelect}
               visible={messages.length === 1 && messages[0]?.role === "assistant"}
+              chips={chips}
             />
             <div ref={bottomRef} aria-hidden="true" />
           </div>

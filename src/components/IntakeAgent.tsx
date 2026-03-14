@@ -187,9 +187,10 @@ function ChatInput({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function IntakeAgent() {
-  const [greeting] = useState(() =>
-    INTAKE_GREETINGS[Math.floor(Math.random() * INTAKE_GREETINGS.length)]
-  );
+  const [greeting] = useState(() => {
+    const day = new Date().getUTCDate();
+    return INTAKE_GREETINGS[day % INTAKE_GREETINGS.length];
+  });
 
   const initialMessages: UIMessage[] = [
     {
@@ -209,6 +210,7 @@ export default function IntakeAgent() {
   const [input, setInput] = useState("");
 
   const chatRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
 
   const scrollToBottom = useCallback((force = false) => {
@@ -217,7 +219,7 @@ export default function IntakeAgent() {
       if (!el) return;
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
       if (force || isNearBottom || !userScrolledUpRef.current) {
-        el.scrollTop = el.scrollHeight;
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         userScrolledUpRef.current = false;
       }
     });
@@ -260,7 +262,7 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-dvh flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
+      className="min-h-svh flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
       {/* Section header */}
       <div className="text-center pt-12 sm:pt-20 pb-4 sm:pb-8 px-6 sm:px-12">
@@ -339,6 +341,7 @@ export default function IntakeAgent() {
               onSelect={handleChipSelect}
               visible={messages.length === 1 && messages[0]?.role === "assistant"}
             />
+            <div ref={bottomRef} aria-hidden="true" />
           </div>
 
           {/* Input bar */}

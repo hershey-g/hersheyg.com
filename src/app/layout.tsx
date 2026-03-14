@@ -12,7 +12,7 @@ const inter = localFont({
 const jetbrainsMono = localFont({
   src: "../fonts/jetbrains-mono-latin-wght-normal.woff2",
   variable: "--font-jetbrains",
-  display: "swap",
+  display: "optional",
 });
 
 export const metadata: Metadata = {

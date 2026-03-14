@@ -16,7 +16,7 @@ const jetbrainsMono = localFont({
 });
 
 export const viewport: Viewport = {
-  interactiveWidget: "resizes-visual",
+  interactiveWidget: "resizes-content",
 };
 
 export const metadata: Metadata = {

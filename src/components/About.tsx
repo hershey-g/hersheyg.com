@@ -9,7 +9,7 @@ import Parallax from "./Parallax";
 export default function About() {
   return (
     <section id="about" className="bg-bg-2 py-[120px] scroll-mt-20">
-      <div className="max-w-[1000px] mx-auto px-6">
+      <div className="max-w-[1000px] mx-auto px-6 sm:px-12">
         <Parallax speed={0.95}>
           <RevealOnScroll>
             <SectionTag>{COPY.about.tag}</SectionTag>

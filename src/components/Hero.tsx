@@ -32,7 +32,7 @@ export default function Hero() {
     <section
       id="hero"
       ref={sectionRef}
-      className="relative flex min-h-screen items-center justify-center px-6 py-28 overflow-hidden"
+      className="relative flex min-h-svh items-center justify-center px-6 py-28 overflow-hidden"
     >
       {/* Ambient glow */}
       <motion.div

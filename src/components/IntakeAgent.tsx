@@ -70,7 +70,7 @@ function AgentMessage({
 
   return (
     <div className="flex gap-2 items-start mb-4 intake-animate-in">
-      <span className="text-sm text-term-green font-mono font-semibold mt-3 flex-shrink-0">H</span>
+      <span className="text-sm text-term-green font-mono font-semibold mt-3 flex-shrink-0">HG</span>
       <div
         className="bg-accent/40 border border-accent/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]"
         style={{ minHeight: "2.5rem", overflowWrap: "break-word" }}

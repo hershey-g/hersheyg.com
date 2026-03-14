@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -14,6 +14,10 @@ const jetbrainsMono = localFont({
   variable: "--font-jetbrains",
   display: "optional",
 });
+
+export const viewport: Viewport = {
+  interactiveWidget: "resizes-visual",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hersheyg.com"),

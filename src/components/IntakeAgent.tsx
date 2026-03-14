@@ -281,7 +281,7 @@ export default function IntakeAgent() {
       </div>
 
       {/* Chat container */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-6 sm:pb-12">
+      <div className="flex-1 flex items-start sm:items-center justify-center px-6 pb-6 sm:pb-12">
         <div className="max-w-[680px] w-full bg-bg-2 border border-line rounded-xl overflow-hidden flex flex-col min-h-[340px] md:h-[420px]">
           {/* Messages area */}
           <div

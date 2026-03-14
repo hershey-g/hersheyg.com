@@ -13,6 +13,7 @@ const NAV_LINKS = [
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
 
   useEffect(() => {
     function handleScroll() {
@@ -22,6 +23,23 @@ export default function Nav() {
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const ids = ["hero", "services", "proof", "about", "contact"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        }
+      },
+      { threshold: 0, rootMargin: "-40% 0px -55% 0px" }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
   }, []);
 
   // Close menu on resize to desktop
@@ -77,7 +95,9 @@ export default function Nav() {
               ) : (
                 <a
                   href={link.href}
-                  className="text-dim hover:text-text transition-colors text-sm"
+                  className={`text-sm transition-colors ${
+                    activeSection === link.href.slice(1) ? "text-text" : "text-dim hover:text-text"
+                  }`}
                 >
                   {link.label}
                 </a>

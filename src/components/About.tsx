@@ -19,18 +19,15 @@ export default function About() {
 
         <div className="mt-10">
           <RevealOnScroll>
-            {/* Accent line */}
             <div className="w-12 h-px bg-accent-lit/30 mb-6" aria-hidden="true" />
-
-            {COPY.about.body.map((paragraph, i) => (
-              <p
-                key={i}
-                className="text-lg text-body leading-[1.7] mb-5 last:mb-0 max-w-[560px]"
-              >
+          </RevealOnScroll>
+          {COPY.about.body.map((paragraph, i) => (
+            <RevealOnScroll key={i} delay={(i + 1) * 0.1}>
+              <p className="text-lg text-body leading-[1.7] mb-5 last:mb-0 max-w-[560px]">
                 {paragraph}
               </p>
-            ))}
-          </RevealOnScroll>
+            </RevealOnScroll>
+          ))}
         </div>
       </div>
     </section>

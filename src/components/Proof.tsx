@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { AnimatePresence, motion, useReducedMotion, useInView } from "framer-motion";
 import { COPY } from "@/lib/constants";
 import SectionTag from "./SectionTag";
 import SectionHead from "./SectionHead";
@@ -71,6 +71,49 @@ function TestimonialRotator() {
   );
 }
 
+function CountUpMetric({ value }: { value: string }) {
+  const prefersReducedMotion = useReducedMotion();
+  const ref = useRef<HTMLParagraphElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+
+  const parsed = useMemo(() => {
+    const match = value.match(/^([\d,]+)(.*)$/);
+    if (!match) return null;
+    return { num: parseInt(match[1].replace(/,/g, ""), 10), suffix: match[2] };
+  }, [value]);
+
+  const [display, setDisplay] = useState(value);
+
+  useEffect(() => {
+    if (!parsed || !isInView || prefersReducedMotion) {
+      setDisplay(value);
+      return;
+    }
+    const duration = 1800;
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - t) ** 3;
+      const current = Math.round(eased * parsed.num);
+      setDisplay(current.toLocaleString() + parsed.suffix);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isInView, parsed, prefersReducedMotion, value]);
+
+  return (
+    <p
+      ref={ref}
+      className="font-extrabold text-white leading-[1.1] tracking-[-0.03em] mb-3"
+      style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)" }}
+    >
+      {display}
+    </p>
+  );
+}
+
 export default function Proof() {
   return (
     <section id="proof" className="py-[120px] bg-bg">
@@ -102,12 +145,7 @@ export default function Proof() {
 
                 {/* Right column: metric, body, badge */}
                 <div>
-                  <p
-                    className="font-extrabold text-white leading-[1.1] tracking-[-0.03em] mb-3"
-                    style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)" }}
-                  >
-                    {card.metric}
-                  </p>
+                  <CountUpMetric value={card.metric} />
                   <p className="text-base text-body leading-[1.65] max-w-[560px]">
                     {card.body}
                   </p>

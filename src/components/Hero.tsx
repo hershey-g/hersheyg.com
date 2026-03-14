@@ -23,6 +23,8 @@ export default function Hero() {
     offset: ["start start", "end start"],
   });
   const glowY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
+  const contentY = useTransform(scrollYProgress, [0, 0.45], [0, -40]);
 
   const headlineParts = COPY.hero.headline.split("\n");
 
@@ -47,7 +49,10 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center text-center max-w-3xl w-full">
+      <motion.div
+        className="relative z-10 flex flex-col items-center text-center max-w-3xl w-full"
+        style={{ opacity: noMotion ? 1 : contentOpacity, y: noMotion ? 0 : contentY }}
+      >
         {/* Eyebrow */}
         <motion.p
           className="font-mono text-[13px] uppercase tracking-widest text-accent-lit mb-8"
@@ -125,7 +130,7 @@ export default function Hero() {
             <path d="M12 5v14M5 12l7 7 7-7" />
           </svg>
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }

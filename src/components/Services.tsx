@@ -28,13 +28,13 @@ export default function Services() {
           {COPY.services.cards.map((card, index) => (
             <RevealOnScroll key={card.num} delay={index * 0.1}>
               <div
-                className={`grid gap-x-6 py-8 border-t border-line${
+                className={`group cursor-default hover:bg-accent/[0.04] transition-colors duration-200 grid gap-x-6 py-8 border-t border-line${
                   index === COPY.services.cards.length - 1 ? " border-b" : ""
                 }`}
                 style={{ gridTemplateColumns: "56px 1fr" }}
               >
                 {/* Row number */}
-                <span className="font-mono text-[13px] text-dim pt-1">
+                <span className="font-mono text-[13px] text-dim pt-1 transition-colors group-hover:text-accent-lit">
                   {card.num}
                 </span>
 

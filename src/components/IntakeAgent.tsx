@@ -69,40 +69,34 @@ function AgentMessage({
   const hasText = message?.parts.some((p) => p.type === "text" && p.text);
 
   return (
-    <div className="flex gap-2 items-start mb-4 intake-animate-in">
-      <span className="text-sm text-term-green font-mono font-semibold mt-3 flex-shrink-0">HG</span>
-      <div
-        className="bg-accent/40 border border-accent/25 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]"
-        style={{ minHeight: "2.5rem", overflowWrap: "break-word" }}
-      >
-        {isStreaming && !hasText ? (
-          <ThinkingIndicator />
-        ) : (
-          <p className="text-[13px] leading-relaxed text-text font-mono whitespace-pre-line">
-            {message?.parts.map((part, i) => {
-              if (part.type === "text") return <span key={i}>{part.text}</span>;
-              return null;
-            })}
-            {isStreaming && hasText && (
-              <span
-                className="inline-block w-[6px] h-[15px] bg-term-green/70 ml-0.5 align-middle rounded-sm"
-                style={{
-                  animation: "intake-cursor-blink 1.2s ease-in-out infinite",
-                  boxShadow: "0 0 8px oklch(0.72 0.19 145 / 0.4)",
-                }}
-              />
-            )}
-          </p>
-        )}
-      </div>
+    <div className="mb-3 intake-animate-in" style={{ overflowWrap: "break-word" }}>
+      {isStreaming && !hasText ? (
+        <ThinkingIndicator />
+      ) : (
+        <p className="text-[13px] leading-relaxed text-text font-mono whitespace-pre-line">
+          {message?.parts.map((part, i) => {
+            if (part.type === "text") return <span key={i}>{part.text}</span>;
+            return null;
+          })}
+          {isStreaming && hasText && (
+            <span
+              className="inline-block w-[6px] h-[15px] bg-term-green/70 ml-0.5 align-middle rounded-sm"
+              style={{
+                animation: "intake-cursor-blink 1.2s ease-in-out infinite",
+                boxShadow: "0 0 8px oklch(0.72 0.19 145 / 0.4)",
+              }}
+            />
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
 function UserMessage({ message }: { message: UIMessage }) {
   return (
-    <div className="flex justify-end mb-4 intake-animate-in">
-      <div className="bg-accent-lit/15 border border-accent-lit/30 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
+    <div className="flex justify-end mb-3 intake-animate-in">
+      <div className="bg-accent-lit/8 rounded-lg px-3 py-2 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-white font-mono">
           {message.parts.map((part, i) => {
             if (part.type === "text") return <span key={i}>{part.text}</span>;
@@ -149,7 +143,7 @@ function SuggestionChips({
                 key={chip}
                 type="button"
                 onClick={() => onSelect(chip)}
-                className="border border-line rounded-md sm:rounded-lg px-3 py-3 sm:px-4 sm:py-3.5 text-left font-mono text-xs sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
+                className="border border-line rounded-md px-2.5 py-2.5 sm:px-3 sm:py-3 text-left font-mono text-xs sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
               >
                 {chip}
               </button>
@@ -182,7 +176,7 @@ function ChatInput({
   };
 
   return (
-    <div className="flex gap-2 px-4 sm:px-5 py-3 border-t border-line bg-bg/30 flex-shrink-0">
+    <div className="flex gap-2 px-3 sm:px-4 py-2.5 border-t border-line/50 flex-shrink-0">
       <input
         ref={inputRef}
         type="text"
@@ -190,12 +184,12 @@ function ChatInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-4 py-2.5 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
+        className="font-mono text-[13px] flex-1 px-3 py-2 border border-line rounded-md bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
       />
       <button
         onClick={onSubmit}
         disabled={!input.trim() || isStreaming}
-        className="font-mono text-xs px-4 py-2.5 border border-accent-lit/40 rounded-lg
+        className="font-mono text-xs px-3 py-2 border border-accent-lit/40 rounded-md
                    bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
                    disabled:opacity-25 disabled:cursor-not-allowed"
         aria-label="Send message"
@@ -306,11 +300,11 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex flex-col items-center px-6 pb-6 sm:pb-12">
-        <div className="max-w-[680px] w-full bg-bg-2 border border-line rounded-xl overflow-hidden flex flex-col flex-1 min-h-[340px] max-h-[clamp(340px,55svh,700px)]">
+        <div className="max-w-[680px] w-full overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
           {/* Messages area */}
           <div
             ref={chatRef}
-            className="p-4 sm:p-7 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
+            className="px-3 py-3 sm:px-4 sm:py-4 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
           >
             {messages.map((msg) => {
               const hasVisibleContent = msg.parts.some(
@@ -341,22 +335,17 @@ export default function IntakeAgent() {
               )}
 
             {(status === "error" || error) && (
-              <div className="flex gap-2.5 items-start mb-4 intake-animate-in">
-                <div className="w-7 h-7 rounded-md bg-term-red/10 border border-term-red/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs text-term-red font-mono font-semibold">!</span>
-                </div>
-                <div className="bg-bg/60 border border-term-red/15 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 max-w-[85%]">
-                  <p className="text-[13px] leading-relaxed text-term-red/80 font-mono whitespace-pre-line">
-                    Something went sideways. No worries — just email{" "}
-                    <a
-                      href="mailto:hello@hersheyg.com"
-                      className="underline text-term-red hover:text-term-red/90"
-                    >
-                      hello@hersheyg.com
-                    </a>{" "}
-                    and Hershey will pick it up.
-                  </p>
-                </div>
+              <div className="mb-3 intake-animate-in">
+                <p className="text-[13px] leading-relaxed text-term-red/80 font-mono whitespace-pre-line">
+                  Something went sideways. No worries — just email{" "}
+                  <a
+                    href="mailto:hello@hersheyg.com"
+                    className="underline text-term-red hover:text-term-red/90"
+                  >
+                    hello@hersheyg.com
+                  </a>{" "}
+                  and Hershey will pick it up.
+                </p>
               </div>
             )}
 

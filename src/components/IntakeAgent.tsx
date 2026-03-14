@@ -238,7 +238,6 @@ export default function IntakeAgent() {
   const chatRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const chatBoxRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback((force = false) => {
     requestAnimationFrame(() => {
@@ -267,29 +266,6 @@ export default function IntakeAgent() {
     scrollToBottom();
   }, [messages, status, scrollToBottom]);
 
-  // Scroll chat into view when iOS keyboard opens
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    let fullHeight = vv.height;
-    let wasKeyboardOpen = false;
-
-    const onResize = () => {
-      if (vv.height > fullHeight) fullHeight = vv.height;
-      const keyboardOpen = fullHeight - vv.height > 100;
-
-      if (keyboardOpen && !wasKeyboardOpen && document.activeElement?.closest("#contact")) {
-        setTimeout(() => {
-          chatBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 300);
-      }
-      wasKeyboardOpen = keyboardOpen;
-    };
-
-    vv.addEventListener("resize", onResize);
-    return () => vv.removeEventListener("resize", onResize);
-  }, []);
 
   const isActive = status === "streaming" || status === "submitted";
 
@@ -333,7 +309,7 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 sm:pb-16">
-        <div ref={chatBoxRef} className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-0 max-h-[600px]">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-0 max-h-[600px]">
           {/* Messages area */}
           <div
             ref={chatRef}

@@ -15,9 +15,7 @@ const jetbrainsMono = localFont({
   display: "optional",
 });
 
-export const viewport: Viewport = {
-  interactiveWidget: "resizes-content",
-};
+export const viewport: Viewport = {};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hersheyg.com"),

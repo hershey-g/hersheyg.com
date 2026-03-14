@@ -105,15 +105,9 @@ body {
   animation: intake-fade-up 0.3s ease both;
 }
 
-/* Intake agent thinking shimmer */
-@keyframes intake-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-
-/* Intake agent + symbol glow pulse */
-@keyframes intake-plus-pulse {
-  0%, 100% { opacity: 0.7; }
+/* Intake agent thinking pulse */
+@keyframes intake-thinking-pulse {
+  0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
 

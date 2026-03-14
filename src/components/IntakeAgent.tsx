@@ -36,26 +36,14 @@ function ThinkingIndicator() {
   );
 
   return (
-    <div className="flex flex-col gap-1.5 py-1" role="status" aria-label="Agent is thinking">
-      <div className="w-[120px] h-[3px] rounded-full bg-term-green/15 overflow-hidden relative">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(90deg, transparent, oklch(0.72 0.19 145 / 0.8), transparent)",
-            animation: "intake-shimmer 1.5s ease-in-out infinite",
-          }}
-        />
-      </div>
-      <span className="text-[11px] font-mono text-term-green/80 flex items-center gap-1">
-        <span
-          className="text-term-green"
-          style={{ animation: "intake-plus-pulse 2s ease-in-out infinite" }}
-        >
-          +
-        </span>
+    <p className="text-[13px] font-mono flex items-center gap-1.5" role="status" aria-label="Agent is thinking">
+      <span className="text-term-green" style={{ animation: "intake-thinking-pulse 2s ease-in-out infinite" }}>
+        &gt;
+      </span>
+      <span className="text-term-green/70" style={{ animation: "intake-thinking-pulse 2s ease-in-out infinite" }}>
         {verb}
       </span>
-    </div>
+    </p>
   );
 }
 
@@ -300,7 +288,7 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex flex-col items-center px-6 pb-6 sm:pb-12">
-        <div className="max-w-[680px] w-full overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-lg overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
           {/* Messages area */}
           <div
             ref={chatRef}

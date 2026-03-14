@@ -54,15 +54,40 @@ interface KnowledgeEntry {
 - `techLevel` — filters entries based on visitor classification: `"technical"` entries only surface for technical visitors, `"non-technical"` for non-technical, `"any"` for all
 - `content` — written in the voice appropriate to its techLevel
 
-### 2. Knowledge Injection Logic
+### 2. Visitor Classification (Code-Level Heuristic)
+
+The chat API route classifies the visitor as `"technical"` or `"non-technical"` using a lightweight code-level heuristic. This classification serves two purposes: (a) filtering knowledge entries by `techLevel`, and (b) being passed to the system prompt so the LLM knows how to adapt its tone.
+
+**Classification function:**
+
+```ts
+function classifyVisitor(
+  messages: { role: string; content: string }[]
+): "technical" | "non-technical"
+```
+
+Scans all user messages in the conversation for technical signal words. Returns `"technical"` if the signal count exceeds a threshold (e.g., 3+ technical terms), otherwise `"non-technical"`.
+
+**Technical signal words:** Framework/library names (React, Next.js, Django, Rails, etc.), infrastructure terms (API, GraphQL, microservices, Docker, Kubernetes, CI/CD), programming terms (endpoint, middleware, schema, migration, deploy, webhook, cron).
+
+**Non-technical is the default.** The classifier only promotes to `"technical"` when there's strong evidence. This is intentional — it's better to be slightly too accessible than to alienate a non-technical prospect with jargon.
+
+**How classification affects behavior:**
+
+- **Code level:** Filters which `techLevel` knowledge entries get injected (see Section 3).
+- **Prompt level:** The visitor classification is passed as a label in the system prompt (`Visitor type: technical` or `Visitor type: non-technical`), and the personality section tells the LLM how to adapt tone and depth for each type:
+  - **Non-technical:** Plain language, outcomes over implementation, analogies instead of jargon. Example: "That's a really common pattern — we'd set it up so your team can update the menu themselves without touching code."
+  - **Technical:** Match depth, use proper terminology, discuss architecture tradeoffs, share real opinions. Example: "Honestly I'd skip the SPA approach here — Next.js with server components gives you the same UX without the state management headache."
+
+### 3. Knowledge Injection Logic
 
 Lives in `src/lib/knowledge/index.ts`. A function that:
 
 1. Takes the current message + last 2-3 messages from history
-2. Scans for keyword hits against all knowledge entries
-3. Scores entries by number of keyword matches
-4. Filters by `techLevel` based on current visitor classification
-5. Returns the top 3-5 entries as a formatted text block
+2. Scans for keyword hits against all knowledge entries (case-insensitive, whole-word matching)
+3. Scores entries by count of unique keyword hits
+4. Filters by `techLevel` based on the code-level visitor classification from Section 2
+5. Returns the top 4 entries as a formatted text block
 
 ```ts
 function getRelevantKnowledge(
@@ -71,27 +96,11 @@ function getRelevantKnowledge(
 ): string
 ```
 
+**Filtering rules:** Entries with `techLevel: "any"` are always eligible. Entries with `techLevel: "technical"` are only eligible when `visitorType` is `"technical"`. Entries with `techLevel: "non-technical"` are only eligible when `visitorType` is `"non-technical"`.
+
 Returns a string block that gets injected into the system prompt as a `## Relevant Context` section. If no entries match, returns empty string (no context injected).
 
-The matching is deliberately simple — ~50 lines of code. Keyword scanning with basic scoring. No stemming, no embeddings. Good enough for a knowledge base of 30-50 entries.
-
-### 3. Visitor Classification
-
-Handled entirely in the system prompt as behavioral instructions — no code branching.
-
-The agent classifies the visitor based on signals in the conversation:
-
-| Signal | Technical | Non-technical |
-|--------|-----------|---------------|
-| Language | Framework names, "API", "GraphQL", "microservices" | "app", "website", "system", "tool" |
-| Problem framing | "I need to integrate X with Y" | "I need something that does X" |
-| Questions asked | "What's your stack?", "Do you use Docker?" | "How long would this take?", "What would it cost?" |
-
-**Behavioral rules by classification:**
-
-- **Non-technical:** Plain language, outcomes over implementation, analogies instead of jargon. Show expertise by explaining *what* something does, not *how*. Example: "That's a really common pattern — we'd set it up so your team can update the menu themselves without touching code."
-- **Technical:** Match depth, use proper terminology, discuss architecture tradeoffs, share real opinions. Example: "Honestly I'd skip the SPA approach here — Next.js with server components gives you the same UX without the state management headache."
-- **Uncertain:** Default to non-technical. If the visitor responds with technical language, ratchet up.
+The matching is deliberately simple — ~50 lines of code. Case-insensitive, whole-word keyword scanning scored by unique keyword hit count. No stemming, no embeddings. Good enough for a knowledge base of 30-50 entries.
 
 ### 4. System Prompt Personality Rewrite
 
@@ -117,18 +126,45 @@ The system prompt personality section gets overhauled. The core character:
 
 ### 5. System Prompt Assembly (Runtime)
 
-The chat API route (`src/app/api/chat/route.ts`) builds the prompt dynamically:
+`src/lib/intake-system-prompt.ts` changes from exporting a static string to exporting a builder function:
+
+```ts
+// Before (current):
+export const INTAKE_SYSTEM_PROMPT: string = "..."
+export const INTAKE_GREETINGS: string[] = [...]
+
+// After:
+export function buildSystemPrompt(opts: {
+  visitorType: "technical" | "non-technical";
+  knowledgeBlock: string;   // from getRelevantKnowledge(), may be empty
+  nearLimit: boolean;       // true when message count >= 25
+}): string
+
+export const INTAKE_GREETINGS: string[] = [...]  // stays as-is
+```
+
+The builder composes the prompt in this order:
 
 ```
-[Base personality + behavioral rules]
-[Visitor classification instructions]
-[## Relevant Knowledge — injected entries from knowledge base]
-[Info gathering instructions — same fields, natural weaving]
-[Tool definitions — complete_intake unchanged]
-[Conversation approaching limit? → wrap-up instructions]
+[Base personality + behavioral rules — static]
+[Visitor type label — "Visitor type: technical" or "non-technical"]
+[## Relevant Knowledge — knowledgeBlock param, omitted if empty]
+[Info gathering instructions — same fields, natural weaving — static]
+[Tool definitions — complete_intake unchanged — static]
+[Wrap-up urgency — appended only when nearLimit is true]
 ```
 
-The knowledge section is the only dynamic part. Everything else is static text that gets composed together.
+The chat API route calls the builder instead of reading a static string:
+
+```ts
+const visitorType = classifyVisitor(messages);
+const knowledgeBlock = getRelevantKnowledge(messages, visitorType);
+const systemPrompt = buildSystemPrompt({
+  visitorType,
+  knowledgeBlock,
+  nearLimit: messages.length >= 25,
+});
+```
 
 ### 6. Rotating Suggestion Chips
 
@@ -147,16 +183,16 @@ Replace the current 4 static chips with a pool of ~16-20 organized by category. 
 
 The "opinionated" category chips are personality teasers — they hint that this agent has real takes, differentiating it from a generic contact form bot.
 
-**Implementation:** Move suggestion chips to `src/lib/knowledge/chips.ts` (or `src/lib/constants.ts` alongside existing copy). Client component selects 4 using a seeded random based on date + time-of-day bucket (morning/afternoon/evening).
+**Implementation:** Chip pool lives in `src/lib/intake-system-prompt.ts` alongside the existing `INTAKE_GREETINGS` array (both are agent personality content, not knowledge base data). Exported as a categorized object. Client component selects 4 (one per category) using a seeded random based on date + time-of-day bucket (morning/afternoon/evening).
 
 ### 7. Chat API Route Changes
 
 `src/app/api/chat/route.ts` changes:
 
 1. **Import knowledge module** — `getRelevantKnowledge()` from `src/lib/knowledge/`
-2. **Classify visitor** — scan message history for technical signals to determine `visitorType`
-3. **Build dynamic prompt** — compose base personality + relevant knowledge + existing wrap-up logic
-4. **System prompt source** — import from refactored `src/lib/intake-system-prompt.ts` which now exports a builder function instead of a static string
+2. **Import classifier** — `classifyVisitor()` from `src/lib/knowledge/`
+3. **Import prompt builder** — `buildSystemPrompt()` from `src/lib/intake-system-prompt.ts`
+4. **Replace static prompt usage** — current `let systemPrompt = INTAKE_SYSTEM_PROMPT` + manual wrap-up append becomes a single `buildSystemPrompt()` call (see Section 5 for call site example)
 
 The `complete_intake` tool, rate limiting, message validation, and streaming all remain unchanged.
 
@@ -164,7 +200,7 @@ The `complete_intake` tool, rate limiting, message validation, and streaming all
 
 | File | Change |
 |------|--------|
-| `src/lib/knowledge/index.ts` | **New** — knowledge types, matcher, injection builder |
+| `src/lib/knowledge/index.ts` | **New** — knowledge types, matcher, injection builder, visitor classifier |
 | `src/lib/knowledge/portfolio.ts` | **New** — portfolio entries (placeholder until extraction) |
 | `src/lib/knowledge/opinions.ts` | **New** — tech opinion entries (placeholder until extraction) |
 | `src/lib/knowledge/process.ts` | **New** — process/engagement entries (placeholder until extraction) |
@@ -185,7 +221,9 @@ The `complete_intake` tool, rate limiting, message validation, and streaming all
 
 ### 10. Knowledge Extraction (Separate Phase)
 
-The knowledge base ships with placeholder entries initially. A separate conversation session does a structured interview to extract real content from Hershey:
+The knowledge base ships with 2-3 representative sample entries per file so the injection system is testable during development. These samples should cover different `techLevel` values and keyword patterns to exercise the matcher. Sample content can be based on what's already visible on the site (services section, proof section) — it doesn't need to be deeply accurate, just structurally correct.
+
+A separate conversation session after implementation does a structured interview to replace samples with real content from Hershey:
 
 1. Past projects (3-5 most interesting/representative)
 2. Tech opinions (stack preferences, what you recommend and why)

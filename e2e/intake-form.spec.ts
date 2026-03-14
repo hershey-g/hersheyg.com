@@ -61,9 +61,11 @@ test("Suggestion chips render in grid", async ({ page }, testInfo) => {
   await expect(page.getByRole("button", { name: "Tell me about your work" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Just exploring" })).toBeVisible();
 
-  // Chips container should use grid layout
-  const chipsGrid = page.locator(".grid.grid-cols-2");
+  // Chips container should use grid layout (2-col on desktop via sm:grid-cols-2)
+  const chipsGrid = page.locator('.grid').filter({ has: page.getByRole('button', { name: 'I want to build an AI agent' }) });
   await expect(chipsGrid).toBeVisible();
+  const columns = await chipsGrid.evaluate(el => getComputedStyle(el).gridTemplateColumns);
+  expect(columns.split(' ').length).toBe(2);
 });
 
 // ---------------------------------------------------------------------------

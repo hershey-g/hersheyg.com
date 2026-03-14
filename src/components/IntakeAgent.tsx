@@ -159,6 +159,10 @@ function ChatInput({
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
+
+    // Don't auto-focus on touch devices — opening the keyboard on scroll is disruptive
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

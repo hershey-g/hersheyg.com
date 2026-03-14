@@ -5,6 +5,7 @@ import {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
 } from "react";
 import {
   AnimatePresence,
@@ -20,19 +21,40 @@ import { COPY } from "@/lib/constants";
    Sub-components
    ═══════════════════════════════════════════════════════════════════════════ */
 
+const THINKING_VERBS = [
+  "Crystallizing...",
+  "Composing...",
+  "Synthesizing...",
+  "Formulating...",
+  "Processing...",
+] as const;
+
 function ThinkingIndicator() {
+  const verb = useMemo(
+    () => THINKING_VERBS[Math.floor(Math.random() * THINKING_VERBS.length)],
+    []
+  );
+
   return (
     <div className="flex flex-col gap-1.5 py-1" role="status" aria-label="Agent is thinking">
       <div className="w-[120px] h-[3px] rounded-full bg-term-orange/15 overflow-hidden relative">
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(90deg, transparent, oklch(0.8 0.15 65 / 0.6), transparent)",
+            background: "linear-gradient(90deg, transparent, oklch(0.8 0.15 65 / 0.8), transparent)",
             animation: "intake-shimmer 1.5s ease-in-out infinite",
           }}
         />
       </div>
-      <span className="text-[10px] font-mono text-term-orange/50">thinking...</span>
+      <span className="text-[11px] font-mono text-term-orange/80 flex items-center gap-1">
+        <span
+          className="text-term-orange"
+          style={{ animation: "intake-plus-pulse 2s ease-in-out infinite" }}
+        >
+          +
+        </span>
+        {verb}
+      </span>
     </div>
   );
 }
@@ -66,7 +88,13 @@ function AgentMessage({
               return null;
             })}
             {isStreaming && hasText && (
-              <span className="inline-block w-[6px] h-[14px] bg-term-orange/70 ml-0.5 align-middle opacity-70 animate-pulse" />
+              <span
+                className="inline-block w-[6px] h-[15px] bg-term-orange/70 ml-0.5 align-middle rounded-sm"
+                style={{
+                  animation: "intake-cursor-blink 1.2s ease-in-out infinite",
+                  boxShadow: "0 0 8px oklch(0.8 0.15 65 / 0.4)",
+                }}
+              />
             )}
           </p>
         )}

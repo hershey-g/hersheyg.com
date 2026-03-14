@@ -1,19 +1,9 @@
 export const COPY = {
-  meta: {
-    title: 'Hershey Goldberger',
-    description: 'Agentic AI systems and full-stack products. Production-grade. One engineer.',
-  },
   hero: {
     eyebrow: 'Independent AI Engineering',
     headline: 'I build AI that runs\nyour business forward',
     sub: 'Production-grade agents and automation — from prototype to live system. One engineer, zero overhead.',
     cta: 'Start a conversation',
-  },
-  nav: {
-    services: 'services',
-    proof: 'proof',
-    about: 'about',
-    contact: 'contact',
   },
   services: {
     tag: 'What I Build',
@@ -87,8 +77,5 @@ export const COPY = {
   social: {
     linkedin: 'https://www.linkedin.com/in/hersheyg',
     github: 'https://github.com/hersheyg',
-  },
-  footer: {
-    left: 'Hershey Goldberger',
   },
 } as const;

@@ -62,7 +62,6 @@ function AgentMessage({
         <ThinkingIndicator />
       ) : (
         <p className="text-[13px] leading-relaxed text-text font-mono whitespace-pre-line">
-          <span className="text-term-green mr-1.5 select-none" aria-hidden="true">&gt;</span>
           {message?.parts.map((part, i) => {
             if (part.type === "text") return <span key={i}>{part.text}</span>;
             return null;
@@ -156,6 +155,22 @@ function ChatInput({
   isStreaming: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.focus({ preventScroll: true });
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && input.trim() && !isStreaming) {
@@ -289,7 +304,7 @@ export default function IntakeAgent() {
 
       {/* Chat container */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 sm:pb-16">
-        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col max-h-[clamp(320px,50svh,600px)]">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col h-[clamp(320px,50svh,600px)]">
           {/* Messages area */}
           <div
             ref={chatRef}

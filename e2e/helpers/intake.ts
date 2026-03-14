@@ -56,19 +56,6 @@ export async function mockChatAPIError(page: Page) {
 }
 
 /**
- * Mock the /api/chat endpoint to return a 429 rate limit error.
- */
-export async function mockChatAPIRateLimit(page: Page) {
-  await page.route("**/api/chat", async (route) => {
-    await route.fulfill({
-      status: 429,
-      contentType: "application/json",
-      body: JSON.stringify({ error: "Too many messages. Try again in a moment." }),
-    });
-  });
-}
-
-/**
  * Send a message in the chat UI.
  */
 export async function sendChatMessage(

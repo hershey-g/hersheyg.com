@@ -1,32 +1,32 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
 const COUNTRY_CODES = [
-  { label: "US +1", value: "+1" },
-  { label: "UK +44", value: "+44" },
-  { label: "IL +972", value: "+972" },
-  { label: "CA +1", value: "+1" },
-  { label: "AU +61", value: "+61" },
+  { label: "🇺🇸 +1", value: "+1" },
+  { label: "🇬🇧 +44", value: "+44" },
+  { label: "🇮🇱 +972", value: "+972" },
+  { label: "🇨🇦 +1", value: "+1" },
+  { label: "🇦🇺 +61", value: "+61" },
 ];
 
 function normalizePhoneNumber(countryCode: string, localNumber: string) {
   const digits = localNumber.replace(/\D/g, "");
   if (!digits) return "";
-
-  const normalizedCountryCode = countryCode.replace(/[^\d+]/g, "");
-  const withoutLeadingZeros = digits.replace(/^0+/, "");
-  return `${normalizedCountryCode}${withoutLeadingZeros}`;
+  const normalized = countryCode.replace(/[^\d+]/g, "");
+  return `${normalized}${digits.replace(/^0+/, "")}`;
 }
 
-function PhoneIcon() {
+/* ── Icons ────────────────────────────────────── */
+
+function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-4 w-4"
+      className={className}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -43,10 +43,10 @@ function CloseIcon() {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-4 w-4"
+      className="h-3.5 w-3.5"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -56,26 +56,75 @@ function CloseIcon() {
   );
 }
 
+function ChevronDown() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-3 w-3 text-dim"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ArrowRight() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  );
+}
+
 function RingingPhoneIcon() {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-7 w-7 text-accent-lit"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.09 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.62a2 2 0 0 1-.45 2.11L8 9.87a16 16 0 0 0 6.13 6.13l1.42-1.24a2 2 0 0 1 2.11-.45c.84.29 1.72.5 2.62.62A2 2 0 0 1 22 16.92Z" />
-      <path d="M15.5 4.5a4.5 4.5 0 0 1 0 6.36" className="demo-call-ring-wave" />
-      <path d="M17.8 2.2a7.75 7.75 0 0 1 0 10.96" className="demo-call-ring-wave demo-call-ring-wave-delay" />
     </svg>
   );
 }
 
-const DISMISS_STORAGE_KEY = "demo-call-cta-dismissed";
+/* ── Pulse Rings (success animation) ──────────── */
+
+function PulseRings() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <span className="dcta-ring dcta-ring-1" />
+      <span className="dcta-ring dcta-ring-2" />
+      <span className="dcta-ring dcta-ring-3" />
+    </div>
+  );
+}
+
+/* ── Constants ────────────────────────────────── */
+
+const DISMISS_KEY = "demo-call-cta-dismissed";
+
+/* ── Component ────────────────────────────────── */
 
 export default function DemoCallCTA() {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,248 +133,270 @@ export default function DemoCallCTA() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(true); // start hidden to avoid flash
+  const [showTooltip, setShowTooltip] = useState(false);
   const inputId = useId();
-  const normalizedPhoneNumber = normalizePhoneNumber(countryCode, phoneInput);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const normalized = normalizePhoneNumber(countryCode, phoneInput);
 
+  /* hydrate dismiss state */
   useEffect(() => {
-    const storedValue = window.sessionStorage.getItem(DISMISS_STORAGE_KEY);
-    if (storedValue === "true") {
-      setIsDismissed(true);
-    }
+    const stored = window.sessionStorage.getItem(DISMISS_KEY);
+    setIsDismissed(stored === "true");
   }, []);
 
+  /* auto-dismiss after success */
   useEffect(() => {
     if (submitState !== "success") return;
-
-    const fadeTimer = window.setTimeout(() => {
-      setIsFadingOut(true);
-    }, 4200);
-
-    const dismissTimer = window.setTimeout(() => {
-      setIsDismissed(true);
-    }, 5000);
-
+    const t1 = setTimeout(() => setIsFadingOut(true), 3500);
+    const t2 = setTimeout(() => setIsDismissed(true), 4200);
     return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(dismissTimer);
+      clearTimeout(t1);
+      clearTimeout(t2);
     };
   }, [submitState]);
 
+  /* focus input on open */
   useEffect(() => {
     if (!isOpen || submitState === "success") return;
-
-    const focusTimer = window.setTimeout(() => {
-      const input = document.getElementById(inputId);
-      if (input instanceof HTMLInputElement) {
-        input.focus();
-      }
-    }, 180);
-
-    return () => window.clearTimeout(focusTimer);
+    const t = setTimeout(() => {
+      const el = document.getElementById(inputId);
+      if (el instanceof HTMLInputElement) el.focus();
+    }, 250);
+    return () => clearTimeout(t);
   }, [inputId, isOpen, submitState]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /* close on outside click */
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isOpen]);
 
-    if (!normalizedPhoneNumber) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!normalized) {
       setSubmitState("error");
       setErrorMessage("Enter a valid phone number.");
       return;
     }
-
     setSubmitState("loading");
     setErrorMessage("");
-
     try {
-      const response = await fetch("/api/demo-call", {
+      const res = await fetch("/api/demo-call", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phoneNumber: normalizedPhoneNumber }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: normalized }),
       });
-
-      const payload = (await response.json().catch(() => null)) as
+      const payload = (await res.json().catch(() => null)) as
         | { error?: string; ok?: boolean }
         | null;
-
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Unable to initiate your call.");
-      }
-
+      if (!res.ok) throw new Error(payload?.error ?? "Unable to start call.");
       setSubmitState("success");
       setPhoneInput("");
-      setIsOpen(true);
-    } catch (error) {
+    } catch (err) {
       setSubmitState("error");
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to initiate your call."
+        err instanceof Error ? err.message : "Unable to start call."
       );
     }
   }
 
   function handleDismiss() {
-    window.sessionStorage.setItem(DISMISS_STORAGE_KEY, "true");
+    window.sessionStorage.setItem(DISMISS_KEY, "true");
     setIsDismissed(true);
   }
 
-  if (isDismissed) {
-    return null;
-  }
+  if (isDismissed) return null;
 
   const isBusy = submitState === "loading";
-  const buttonLabel =
-    submitState === "loading"
-      ? "Calling..."
-      : submitState === "success"
-        ? "Phone ringing..."
-        : "Call me";
 
-  return (
-    <div
-      className={[
-        "fixed bottom-20 right-3 z-50 sm:bottom-6 sm:right-6",
-        "transition-all duration-500",
-        isFadingOut ? "translate-y-2 opacity-0" : "translate-y-0 opacity-100",
-      ].join(" ")}
-    >
+  /* ── Success State ────────────────────────────── */
+  if (submitState === "success") {
+    return (
       <div
         className={[
-          "relative overflow-hidden rounded-[1.35rem] bg-[linear-gradient(120deg,rgba(91,155,213,0.14),rgba(91,155,213,0.8),rgba(91,155,213,0.12))] p-px shadow-[0_18px_60px_rgba(0,0,0,0.45)]",
-          "transition-[width,transform,opacity] duration-300 ease-out",
-          !isOpen ? "demo-call-pill-glow w-auto" : "demo-call-panel-enter w-[min(calc(100vw-1.5rem),22rem)] sm:w-[22rem]",
+          "fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8",
+          "transition-all duration-700",
+          isFadingOut
+            ? "translate-y-3 scale-95 opacity-0"
+            : "translate-y-0 scale-100 opacity-100",
         ].join(" ")}
       >
-        <div className="relative overflow-hidden rounded-[calc(1.35rem-1px)] border border-line bg-bg-2/95 backdrop-blur-xl">
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen((open) => !open);
-              if (submitState === "error") {
-                setSubmitState("idle");
-                setErrorMessage("");
-              }
-            }}
-            className={[
-              "relative group flex min-w-0 items-center gap-2.5 text-left transition-all sm:gap-3",
-              isOpen
-                ? "w-full rounded-[1.35rem] border-b border-line/80 bg-transparent px-4 py-3.5 pr-12 hover:border-line/80"
-                : "rounded-[1.35rem] bg-bg/95 px-3 py-2.5 pr-4 shadow-[0_0_0_1px_rgba(91,155,213,0.18),0_0_24px_rgba(91,155,213,0.18)] hover:shadow-[0_0_0_1px_rgba(91,155,213,0.32),0_0_32px_rgba(91,155,213,0.24)] sm:px-4 sm:py-3",
-            ].join(" ")}
-            aria-expanded={isOpen}
-            aria-controls="demo-call-panel"
-          >
-            <span
-              className={[
-                "flex items-center justify-center rounded-full border border-accent-lit/30 bg-accent/40 text-accent-lit",
-                isOpen ? "h-10 w-10" : "h-8 w-8 sm:h-9 sm:w-9",
-              ].join(" ")}
-            >
-              <PhoneIcon />
+        <div className="dcta-success-enter relative flex flex-col items-center gap-3 rounded-2xl border border-accent-lit/20 bg-bg-2/95 px-8 py-6 shadow-[0_8px_40px_rgba(91,155,213,0.2)] backdrop-blur-xl">
+          <div className="relative flex h-14 w-14 items-center justify-center">
+            <PulseRings />
+            <span className="dcta-phone-vibrate relative z-10">
+              <RingingPhoneIcon />
             </span>
-            <span className="min-w-0">
-              <span className="block font-mono text-[10px] uppercase tracking-[0.22em] text-accent-lit/80 sm:text-[11px]">
-                AI Demo
-              </span>
-              <span className="block truncate font-mono text-xs text-text sm:text-sm">
-                {isOpen ? "Get a live callback" : "Talk to the AI"}
-              </span>
-            </span>
-            {!isOpen ? (
-              <span
-                className="demo-call-pulse absolute inset-0 rounded-[1.35rem]"
-                aria-hidden="true"
-              />
-            ) : null}
-          </button>
-
-          {isOpen ? (
-            <button
-              type="button"
-              onClick={handleDismiss}
-              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-line bg-bg/70 text-dim transition-colors hover:border-accent-lit/40 hover:text-accent-lit"
-              aria-label="Dismiss demo call widget"
-            >
-              <CloseIcon />
-            </button>
-          ) : null}
-        </div>
-
-        <div
-          id="demo-call-panel"
-          className={[
-            "grid transition-all duration-300 ease-out",
-            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-          ].join(" ")}
-        >
-          <div className="overflow-hidden">
-            <form onSubmit={handleSubmit} className="space-y-3 px-4 pb-4 pt-3">
-              <div className="pr-10">
-                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent-lit/80">
-                  Instant callback
-                </p>
-                <p className="mt-1 font-mono text-xs text-dim">
-                  Drop your number and the AI calls right away.
-                </p>
-              </div>
-
-              <label htmlFor={inputId} className="block font-mono text-[11px] uppercase tracking-[0.2em] text-dim">
-                Your phone
-              </label>
-
-              <div className="flex gap-2">
-                <select
-                  value={countryCode}
-                  onChange={(event) => setCountryCode(event.target.value)}
-                  disabled={isBusy || submitState === "success"}
-                  className="w-24 rounded-lg border border-line bg-bg px-2 py-3 font-mono text-sm text-text outline-none transition-colors focus:border-accent-lit/60 disabled:cursor-not-allowed disabled:opacity-70"
-                  aria-label="Country code"
-                >
-                  {COUNTRY_CODES.map((option) => (
-                    <option key={`${option.label}-${option.value}`} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  id={inputId}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel-national"
-                  value={phoneInput}
-                  onChange={(event) => setPhoneInput(event.target.value)}
-                  disabled={isBusy || submitState === "success"}
-                  placeholder="555 123 4567"
-                  className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-3 font-mono text-sm text-text outline-none transition-colors placeholder:text-dim focus:border-accent-lit/60 disabled:cursor-not-allowed disabled:opacity-70"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isBusy || submitState === "success"}
-                className="w-full rounded-lg border border-accent-lit/40 bg-accent px-3 py-3 font-mono text-sm text-text transition-colors hover:border-accent-lit/70 hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-80"
-              >
-                {buttonLabel}
-              </button>
-
-              {submitState === "success" ? (
-                <div className="flex items-center gap-2 rounded-lg border border-accent-lit/25 bg-accent-lit/10 px-3 py-2.5 font-mono text-xs text-accent-lit">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-lit/25 bg-accent-lit/10">
-                    <RingingPhoneIcon />
-                  </span>
-                  <span>Phone ringing now. Keep it nearby.</span>
-                </div>
-              ) : null}
-
-              {submitState === "error" ? (
-                <p className="font-mono text-xs text-term-red">{errorMessage}</p>
-              ) : null}
-            </form>
           </div>
+          <p className="font-mono text-sm font-medium text-text">
+            Your phone is about to ring…
+          </p>
+          <p className="font-mono text-[11px] text-dim">
+            Pick up to hear AI in action
+          </p>
         </div>
       </div>
+    );
+  }
+
+  /* ── Collapsed State (FAB) ────────────────────── */
+  if (!isOpen) {
+    return (
+      <div className="fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8">
+        {/* Tooltip */}
+        <div
+          className={[
+            "pointer-events-none absolute bottom-full right-0 mb-3 whitespace-nowrap rounded-lg border border-line bg-bg-2/95 px-3 py-1.5 font-mono text-[11px] text-accent-lit shadow-lg backdrop-blur-md transition-all duration-200",
+            showTooltip
+              ? "translate-y-0 opacity-100"
+              : "translate-y-1 opacity-0",
+          ].join(" ")}
+        >
+          Hear AI in action
+          <span className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 border-b border-r border-line bg-bg-2/95" />
+        </div>
+
+        {/* FAB Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen(true);
+            setShowTooltip(false);
+          }}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          className="dcta-fab group relative flex h-14 w-14 items-center justify-center rounded-full border border-accent-lit/25 bg-bg-2/90 text-accent-lit shadow-[0_4px_24px_rgba(91,155,213,0.15)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-accent-lit/40 hover:shadow-[0_4px_32px_rgba(91,155,213,0.25)]"
+          aria-label="Get an AI demo call"
+        >
+          {/* Shimmer ring */}
+          <span className="dcta-shimmer-ring absolute inset-0 rounded-full" />
+          {/* Glow pulse */}
+          <span className="dcta-glow absolute inset-[-3px] rounded-full" />
+          <PhoneIcon className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+        </button>
+
+        {/* Dismiss X */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-line bg-bg-2 text-dim opacity-0 transition-all hover:border-accent-lit/40 hover:text-accent-lit group-hover:opacity-100 sm:opacity-60 sm:hover:opacity-100"
+          aria-label="Dismiss"
+        >
+          <CloseIcon />
+        </button>
+      </div>
+    );
+  }
+
+  /* ── Expanded State ───────────────────────────── */
+  return (
+    <div className="fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8" ref={panelRef}>
+      <div className="dcta-panel-enter w-[min(calc(100vw-2rem),20rem)] overflow-hidden rounded-2xl border border-line bg-bg-2/95 shadow-[0_12px_48px_rgba(0,0,0,0.4),0_0_0_1px_rgba(91,155,213,0.08)] backdrop-blur-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-line/60 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-lit/20 bg-accent-lit/10 text-accent-lit">
+              <PhoneIcon className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-accent-lit">
+                AI Demo Call
+              </p>
+              <p className="font-mono text-[10px] text-dim">
+                Instant callback — 30 seconds
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-dim transition-colors hover:bg-line hover:text-text"
+            aria-label="Close"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3 px-4 pb-4 pt-3.5">
+          <div className="flex gap-2">
+            <div className="relative">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                disabled={isBusy}
+                className="h-10 w-[4.75rem] appearance-none rounded-lg border border-line bg-bg pl-2.5 pr-6 font-mono text-xs text-text outline-none transition-colors focus:border-accent-lit/50 disabled:opacity-60"
+                aria-label="Country code"
+              >
+                {COUNTRY_CODES.map((opt) => (
+                  <option key={`${opt.label}-${opt.value}`} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+                <ChevronDown />
+              </span>
+            </div>
+            <input
+              id={inputId}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              disabled={isBusy}
+              placeholder="(555) 123-4567"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 font-mono text-sm text-text outline-none transition-colors placeholder:text-dim/50 focus:border-accent-lit/50 disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isBusy || !phoneInput.trim()}
+            className="group flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent-lit/15 font-mono text-[13px] font-medium text-accent-lit transition-all hover:bg-accent-lit/25 disabled:opacity-40"
+          >
+            {isBusy ? (
+              <>
+                <span className="dcta-spinner h-3.5 w-3.5 rounded-full border-2 border-accent-lit/30 border-t-accent-lit" />
+                Calling…
+              </>
+            ) : (
+              <>
+                Call me now
+                <ArrowRight />
+              </>
+            )}
+          </button>
+
+          {submitState === "error" && (
+            <p className="font-mono text-[11px] text-term-red">{errorMessage}</p>
+          )}
+
+          <p className="text-center font-mono text-[10px] text-dim/60">
+            We&apos;ll call once, never store your number
+          </p>
+        </form>
+      </div>
+
+      {/* Collapse back to FAB */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(false)}
+        className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-line bg-bg-2 px-2.5 py-1 font-mono text-[10px] text-dim transition-colors hover:text-accent-lit"
+      >
+        <span className="rotate-180">
+          <ChevronDown />
+        </span>
+        minimize
+      </button>
     </div>
   );
 }

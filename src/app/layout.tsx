@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import DemoCallCTA from "@/components/DemoCallCTA";
+import ScrollToTop from "@/components/ScrollToTop";
 import "./globals.css";
 
 const inter = localFont({
@@ -82,6 +83,7 @@ export default function RootLayout({
             }),
           }}
         />
+        <ScrollToTop />
         {children}
         <Analytics />
         <DemoCallCTA />

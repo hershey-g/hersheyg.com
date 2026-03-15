@@ -165,7 +165,7 @@ function ChatInput({
   onSubmit: () => void;
   isStreaming: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -187,6 +187,14 @@ function ChatInput({
     return () => obs.disconnect();
   }, []);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && input.trim() && !isStreaming) {
       e.preventDefault();
@@ -195,15 +203,16 @@ function ChatInput({
   };
 
   return (
-    <div className="flex gap-2.5 px-4 sm:px-5 py-3 border-t border-line/50 flex-shrink-0">
-      <input
+    <div className="flex items-end gap-2.5 px-4 sm:px-5 py-3 border-t border-line/50 flex-shrink-0">
+      <textarea
         ref={inputRef}
-        type="text"
+        rows={1}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-3 py-2 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
+        style={{ fontSize: "16px" }}
+        className="font-mono flex-1 px-3 py-2 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim resize-none"
       />
       <button
         onClick={onSubmit}
@@ -302,7 +311,7 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
+      className="min-h-screen flex flex-col bg-bg scroll-mt-[200px] sm:scroll-mt-[240px]"
     >
       {/* Section header */}
       <div className="text-center pt-12 sm:pt-20 pb-6 sm:pb-10 px-6 sm:px-12">

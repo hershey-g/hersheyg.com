@@ -289,7 +289,7 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-dvh flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
+      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
       {/* Section header */}
       <div className="text-center pt-12 sm:pt-20 pb-6 sm:pb-10 px-6 sm:px-12">
@@ -308,8 +308,8 @@ export default function IntakeAgent() {
       </div>
 
       {/* Chat container */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 sm:pb-16">
-        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-0 max-h-[600px]">
+      <div className="flex-1 flex flex-col items-center px-6 pb-8 sm:pb-16">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-[420px] max-h-[600px]">
           {/* Messages area */}
           <div
             ref={chatRef}

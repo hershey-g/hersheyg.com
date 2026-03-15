@@ -8,7 +8,6 @@ import Footer from "@/components/Footer";
 import DotGrid from "@/components/DotGrid";
 import CursorGlow from "@/components/CursorGlow";
 import ScrollProgress from "@/components/ScrollProgress";
-import FloatingCTA from "@/components/FloatingCTA";
 
 export default function Home() {
   return (
@@ -27,7 +26,6 @@ export default function Home() {
       </main>
 
       <Footer />
-      <FloatingCTA />
     </>
   );
 }

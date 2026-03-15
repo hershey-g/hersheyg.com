@@ -140,6 +140,23 @@ export default function Nav() {
                   </button>
                 </li>
               ))}
+              <li className="border-t border-line/50 mt-2 pt-2">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    const widget = document.querySelector("elevenlabs-convai");
+                    if (widget) (widget as HTMLElement).click();
+                  }}
+                  className="w-full text-left py-2.5 text-sm text-accent-lit hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                  Try AI voice demo
+                </button>
+              </li>
             </ul>
           </motion.div>
         )}

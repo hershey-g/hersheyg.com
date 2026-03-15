@@ -122,7 +122,7 @@ function PulseRings() {
 
 /* ── Constants ────────────────────────────────── */
 
-const DISMISS_KEY = "demo-call-cta-dismissed";
+const TOOLTIP_DISMISS_KEY = "demo-call-tooltip-dismissed";
 
 /* ── Component ────────────────────────────────── */
 
@@ -133,23 +133,27 @@ export default function DemoCallCTA() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(true); // start hidden to avoid flash
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const inputId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const normalized = normalizePhoneNumber(countryCode, phoneInput);
 
-  /* hydrate dismiss state */
+  /* hydrate tooltip dismiss state */
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(DISMISS_KEY);
-    setIsDismissed(stored === "true");
+    const stored = window.sessionStorage.getItem(TOOLTIP_DISMISS_KEY);
+    setTooltipDismissed(stored === "true");
   }, []);
 
   /* auto-dismiss after success */
   useEffect(() => {
     if (submitState !== "success") return;
     const t1 = setTimeout(() => setIsFadingOut(true), 3500);
-    const t2 = setTimeout(() => setIsDismissed(true), 4200);
+    const t2 = setTimeout(() => {
+      setIsOpen(false);
+      setSubmitState("idle");
+      setIsFadingOut(false);
+    }, 4200);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -207,12 +211,10 @@ export default function DemoCallCTA() {
     }
   }
 
-  function handleDismiss() {
-    window.sessionStorage.setItem(DISMISS_KEY, "true");
-    setIsDismissed(true);
+  function handleTooltipDismiss() {
+    window.sessionStorage.setItem(TOOLTIP_DISMISS_KEY, "true");
+    setTooltipDismissed(true);
   }
-
-  if (isDismissed) return null;
 
   const isBusy = submitState === "loading";
 
@@ -250,18 +252,41 @@ export default function DemoCallCTA() {
   if (!isOpen) {
     return (
       <div className="fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8">
-        {/* Tooltip */}
-        <div
-          className={[
-            "pointer-events-none absolute bottom-full right-0 mb-3 whitespace-nowrap rounded-lg border border-line bg-bg-2/95 px-3 py-1.5 font-mono text-[11px] text-accent-lit shadow-lg backdrop-blur-md transition-all duration-200",
-            showTooltip
-              ? "translate-y-0 opacity-100"
-              : "translate-y-1 opacity-0",
-          ].join(" ")}
-        >
-          Get a live AI call
-          <span className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 border-b border-r border-line bg-bg-2/95" />
-        </div>
+        {/* CTA Label (dismissible) */}
+        {!tooltipDismissed && (
+          <div className="absolute bottom-full right-0 mb-3 flex items-center gap-1.5 rounded-lg border border-line bg-bg-2/95 py-1.5 pl-3 pr-1.5 shadow-lg backdrop-blur-md">
+            <span className="whitespace-nowrap font-mono text-[11px] text-accent-lit">
+              Get a live AI call
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTooltipDismiss();
+              }}
+              className="flex h-4 w-4 items-center justify-center rounded-full text-dim/60 transition-colors hover:text-accent-lit"
+              aria-label="Dismiss label"
+            >
+              <CloseIcon />
+            </button>
+            <span className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 border-b border-r border-line bg-bg-2/95" />
+          </div>
+        )}
+
+        {/* Hover tooltip (only when label is dismissed) */}
+        {tooltipDismissed && (
+          <div
+            className={[
+              "pointer-events-none absolute bottom-full right-0 mb-3 whitespace-nowrap rounded-lg border border-line bg-bg-2/95 px-3 py-1.5 font-mono text-[11px] text-accent-lit shadow-lg backdrop-blur-md transition-all duration-200",
+              showTooltip
+                ? "translate-y-0 opacity-100"
+                : "translate-y-1 opacity-0",
+            ].join(" ")}
+          >
+            Get a live AI call
+            <span className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 border-b border-r border-line bg-bg-2/95" />
+          </div>
+        )}
 
         {/* FAB Button */}
         <button
@@ -282,15 +307,7 @@ export default function DemoCallCTA() {
           <PhoneIcon className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
         </button>
 
-        {/* Dismiss X */}
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-line bg-bg-2 text-dim opacity-0 transition-all hover:border-accent-lit/40 hover:text-accent-lit group-hover:opacity-100 sm:opacity-60 sm:hover:opacity-100"
-          aria-label="Dismiss"
-        >
-          <CloseIcon />
-        </button>
+
       </div>
     );
   }
@@ -316,9 +333,9 @@ export default function DemoCallCTA() {
           </div>
           <button
             type="button"
-            onClick={handleDismiss}
+            onClick={() => setIsOpen(false)}
             className="flex h-6 w-6 items-center justify-center rounded-full text-dim transition-colors hover:bg-line hover:text-text"
-            aria-label="Close"
+            aria-label="Minimize"
           >
             <CloseIcon />
           </button>

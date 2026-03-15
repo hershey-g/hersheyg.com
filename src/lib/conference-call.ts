@@ -1,4 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { timingSafeEqual, createHmac } from "node:crypto";
+import { existsSync } from "node:fs";
 
 const PUSHOVER_SCRIPT =
   "/root/.openclaw/shared-memory/skills/pushover/scripts/pushover-send.sh";
@@ -62,19 +64,37 @@ export function validateWebhookSecret(request: Request) {
   const expected = process.env.ELEVENLABS_WEBHOOK_SECRET;
   const actual = request.headers.get("x-webhook-secret");
 
-  return Boolean(expected && actual && actual === expected);
+  if (!expected || !actual) return false;
+
+  const expectedBuf = Buffer.from(expected, "utf-8");
+  const actualBuf = Buffer.from(actual, "utf-8");
+
+  if (expectedBuf.length !== actualBuf.length) return false;
+
+  return timingSafeEqual(expectedBuf, actualBuf);
 }
 
 export function sendTransferNotification() {
-  try {
-    execFileSync(PUSHOVER_SCRIPT, [
+  // The Pushover script only exists on the self-hosted server, not on Vercel.
+  // Use non-blocking execFile and silently skip if the script is absent.
+  if (!existsSync(PUSHOVER_SCRIPT)) {
+    console.warn("Pushover script not found — skipping transfer notification.");
+    return;
+  }
+
+  execFile(
+    PUSHOVER_SCRIPT,
+    [
       "AI Demo Transfer",
       "A website visitor wants to talk to you. Picking up your phone now.",
       "1",
-    ]);
-  } catch (error) {
-    console.error("Pushover notification failed:", error);
-  }
+    ],
+    (error) => {
+      if (error) {
+        console.error("Pushover notification failed:", error);
+      }
+    },
+  );
 }
 
 export async function createOutboundTransferCall(opts: {
@@ -169,12 +189,45 @@ export async function waitForCallToConnect(callSid: string) {
 
   const call = await fetchCall(callSid);
   const durationSeconds = Number(call.duration ?? "0");
+  const connected =
+    call.status === "in-progress" || (call.status === "completed" && durationSeconds > 0);
 
-  return {
-    connected:
-      call.status === "in-progress" || (call.status === "completed" && durationSeconds > 0),
-    call,
-  };
+  return connected
+    ? { connected: true as const, call }
+    : { connected: false as const, call };
+}
+
+/**
+ * Validate an incoming Twilio request signature.
+ * See https://www.twilio.com/docs/usage/security#validating-requests
+ */
+export function validateTwilioSignature(
+  request: Request,
+  params: Record<string, string>,
+) {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken) return false; // Twilio not configured
+
+  const signature = request.headers.get("x-twilio-signature");
+  if (!signature) return false;
+
+  // Reconstruct the full URL Twilio used (without any port mangling).
+  const url = request.url;
+
+  // Sort POST params alphabetically and concatenate key+value
+  const sortedKeys = Object.keys(params).sort();
+  const data = url + sortedKeys.map((k) => k + params[k]).join("");
+
+  const expected = createHmac("sha1", authToken)
+    .update(data, "utf-8")
+    .digest("base64");
+
+  const expectedBuf = Buffer.from(expected, "utf-8");
+  const actualBuf = Buffer.from(signature, "utf-8");
+
+  if (expectedBuf.length !== actualBuf.length) return false;
+
+  return timingSafeEqual(expectedBuf, actualBuf);
 }
 
 export function buildConferenceTwiml(conferenceName: string) {

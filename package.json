@@ -10,7 +10,6 @@
     "test:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@11labs/client": "^0.2.0",
     "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/react": "^3.0.118",
     "@neondatabase/serverless": "^1.0.2",

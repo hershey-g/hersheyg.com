@@ -83,6 +83,14 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
+        {/* ElevenLabs Conversational AI Widget */}
+        {/* @ts-expect-error -- web component not in JSX types */}
+        <elevenlabs-convai agent-id={process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID} />
+        <script
+          src="https://unpkg.com/@elevenlabs/convai-widget-embed"
+          async
+          type="text/javascript"
+        />
       </body>
     </html>
   );

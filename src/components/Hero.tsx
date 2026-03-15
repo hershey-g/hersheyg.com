@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { COPY } from "@/lib/constants";
 import MagneticButton from "@/components/MagneticButton";
-import VoiceWidget from "@/components/VoiceWidget";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
@@ -106,7 +105,6 @@ export default function Hero() {
               {COPY.hero.cta}
             </button>
           </MagneticButton>
-          <VoiceWidget />
         </motion.div>
 
         {/* Scroll indicator — mobile only */}

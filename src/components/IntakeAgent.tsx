@@ -14,7 +14,7 @@ import {
 } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
-import { INTAKE_GREETINGS } from "@/lib/intake-system-prompt";
+import { INTAKE_GREETINGS, INTAKE_CHIP_POOL } from "@/lib/intake-system-prompt";
 import { COPY } from "@/lib/constants";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -96,19 +96,30 @@ function UserMessage({ message }: { message: UIMessage }) {
   );
 }
 
-const SUGGESTION_CHIPS = [
-  "I want to build an AI agent",
-  "I have a project idea",
-  "Tell me about your work",
-  "Just exploring",
-] as const;
+function selectChips(): string[] {
+  const now = new Date();
+  const day = now.getUTCDate();
+  const hour = now.getUTCHours();
+  // 3 time-of-day buckets: morning (0-7), afternoon (8-15), evening (16-23)
+  const bucket = Math.floor(hour / 8);
+  const seed = day * 3 + bucket;
+
+  // Seeded pick: use seed to select one chip from each category
+  const categories = Object.values(INTAKE_CHIP_POOL);
+  return categories.map((chips, i) => {
+    const index = (seed + i * 7) % chips.length;
+    return chips[index];
+  });
+}
 
 function SuggestionChips({
   onSelect,
   visible,
+  chips,
 }: {
   onSelect: (text: string) => void;
   visible: boolean;
+  chips: string[];
 }) {
   const prefersReducedMotion = useReducedMotion();
 
@@ -126,7 +137,7 @@ function SuggestionChips({
           className="overflow-hidden mt-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-            {SUGGESTION_CHIPS.map((chip) => (
+            {chips.map((chip) => (
               <button
                 key={chip}
                 type="button"
@@ -217,6 +228,8 @@ export default function IntakeAgent() {
     const day = new Date().getUTCDate();
     return INTAKE_GREETINGS[day % INTAKE_GREETINGS.length];
   });
+
+  const chips = useMemo(() => selectChips(), []);
 
   const initialMessages: UIMessage[] = [
     {
@@ -362,6 +375,7 @@ export default function IntakeAgent() {
             <SuggestionChips
               onSelect={handleChipSelect}
               visible={messages.length === 1 && messages[0]?.role === "assistant"}
+              chips={chips}
             />
             <div ref={bottomRef} aria-hidden="true" />
           </div>

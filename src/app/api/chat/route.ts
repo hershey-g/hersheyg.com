@@ -2,7 +2,8 @@ import { streamText, convertToModelMessages, consumeStream, stepCountIs, type UI
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { Resend } from "resend";
-import { INTAKE_SYSTEM_PROMPT } from "@/lib/intake-system-prompt";
+import { buildSystemPrompt } from "@/lib/intake-system-prompt";
+import { classifyVisitor, getRelevantKnowledge, ALL_KNOWLEDGE } from "@/lib/knowledge";
 import { insertConversation, ensureTable } from "@/lib/db";
 import { getRateLimiter } from "@/lib/rate-limit";
 
@@ -24,6 +25,18 @@ function getClientIp(request: Request): string {
     request.headers.get("x-real-ip") ??
     "unknown"
   );
+}
+
+function extractTextMessages(messages: UIMessage[]): { role: string; content: string }[] {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({
+      role: m.role,
+      content: m.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join(""),
+    }));
 }
 
 export async function POST(request: Request) {
@@ -88,12 +101,14 @@ export async function POST(request: Request) {
     return msg;
   });
 
-  // Soft limit: nudge the agent to wrap up before the hard limit
-  let systemPrompt = INTAKE_SYSTEM_PROMPT;
-  if (messages.length >= 25) {
-    systemPrompt += `\n\n## URGENT — Conversation Limit
-This conversation is approaching the message limit. You MUST wrap up now. If you have enough info, call complete_intake immediately. If not, tell the visitor to email hello@hersheyg.com and give them a warm send-off. Do not ask more questions.`;
-  }
+  const textMessages = extractTextMessages(messages);
+  const visitorType = classifyVisitor(textMessages);
+  const knowledgeBlock = getRelevantKnowledge(textMessages, visitorType, ALL_KNOWLEDGE);
+  const systemPrompt = buildSystemPrompt({
+    visitorType,
+    knowledgeBlock,
+    nearLimit: messages.length >= 25,
+  });
 
   const result = streamText({
     model: anthropic(MODEL),

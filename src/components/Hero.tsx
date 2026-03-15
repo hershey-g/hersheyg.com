@@ -88,7 +88,7 @@ export default function Hero() {
         </motion.p>
 
         {/* CTA */}
-        <motion.div className="mt-10" {...fadeUp(0.55, noMotion)}>
+        <motion.div className="mt-10 flex flex-col items-center gap-4" {...fadeUp(0.55, noMotion)}>
           <MagneticButton>
             <button
               onClick={() =>

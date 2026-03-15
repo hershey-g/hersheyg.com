@@ -8,11 +8,17 @@ const CONTEXT_MESSAGES = 3; // last N messages to scan (per spec)
  * Returns the count of unique keyword matches (case-insensitive, whole-word).
  */
 export function scoreEntry(entry: KnowledgeEntry, text: string): number {
-  const lowerText = ` ${text.toLowerCase()} `;
+  const lowerText = text.toLowerCase();
   let hits = 0;
   for (const keyword of entry.keywords) {
-    const pattern = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
-    if (pattern.test(lowerText)) {
+    const lowerKeyword = keyword.toLowerCase();
+    // Multi-word or hyphenated keywords: use case-insensitive includes
+    // Single-word keywords: use \b for whole-word matching
+    const hasNonWord = /\W/.test(keyword);
+    const matched = hasNonWord
+      ? lowerText.includes(lowerKeyword)
+      : new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lowerText);
+    if (matched) {
       hits++;
     }
   }

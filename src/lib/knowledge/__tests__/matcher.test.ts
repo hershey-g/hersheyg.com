@@ -53,6 +53,30 @@ describe("scoreEntry", () => {
     const score = scoreEntry(TEST_ENTRIES[3], "I need repricing analysis");
     expect(score).toBe(0); // "repricing" should NOT match "pricing"
   });
+
+  it("matches hyphenated keywords like full-stack", () => {
+    const entry: KnowledgeEntry = {
+      id: "test-hyphen",
+      category: "capabilities",
+      keywords: ["full-stack", "high-traffic"],
+      techLevel: "any",
+      content: "test",
+    };
+    expect(scoreEntry(entry, "I need a full-stack developer")).toBe(1);
+    expect(scoreEntry(entry, "We handle high-traffic sites")).toBe(1);
+  });
+
+  it("matches multi-word keywords like open source", () => {
+    const entry: KnowledgeEntry = {
+      id: "test-multi",
+      category: "portfolio",
+      keywords: ["open source", "one person"],
+      techLevel: "any",
+      content: "test",
+    };
+    expect(scoreEntry(entry, "Do you contribute to open source?")).toBe(1);
+    expect(scoreEntry(entry, "Is it just one person?")).toBe(1);
+  });
 });
 
 describe("getRelevantKnowledge", () => {

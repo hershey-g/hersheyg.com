@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
-import ElevenLabsWidget from "@/components/ElevenLabsWidget";
+import DemoCallCTA from "@/components/DemoCallCTA";
 import "./globals.css";
 
 const inter = localFont({
@@ -84,7 +84,7 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
-        <ElevenLabsWidget />
+        <DemoCallCTA />
       </body>
     </html>
   );

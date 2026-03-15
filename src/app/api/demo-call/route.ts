@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { getRateLimiter } from "@/lib/rate-limit";
 
 const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
 const PHONE_DAILY_LIMIT = 10;
+const IP_WINDOW_LIMIT = 5;
 const ELEVENLABS_URL =
   "https://api.elevenlabs.io/v1/convai/twilio/outbound-call";
 
@@ -13,8 +15,49 @@ type CounterEntry = {
 const phoneCounters = new Map<string, CounterEntry>();
 
 const requestSchema = z.object({
-  phoneNumber: z.string().trim().regex(PHONE_REGEX, "Phone number must be valid E.164 format."),
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(PHONE_REGEX, "Phone number must be valid E.164 format."),
 });
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+function isAllowedOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+
+  const host = request.headers.get("host");
+  if (!host) return false;
+
+  try {
+    const originUrl = new URL(origin);
+    const expectedHosts = [
+      host,
+      process.env.NEXT_PUBLIC_SITE_URL,
+    ].filter((value): value is string => Boolean(value));
+
+    for (const expected of expectedHosts) {
+      const expectedUrl = expected.includes("://")
+        ? new URL(expected)
+        : new URL(`https://${expected}`);
+
+      if (originUrl.host === expectedUrl.host) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function getDayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -60,6 +103,30 @@ function incrementWithLimit(
 }
 
 export async function POST(request: Request) {
+  if (!isAllowedOrigin(request)) {
+    return Response.json({ error: "Origin not allowed." }, { status: 403 });
+  }
+
+  try {
+    const limiter = getRateLimiter({
+      limit: IP_WINDOW_LIMIT,
+      window: "10 m",
+      prefix: "demo-call",
+    });
+
+    if (limiter) {
+      const { success } = await limiter.limit(getClientIp(request));
+      if (!success) {
+        return Response.json(
+          { error: "Too many demo call attempts. Try again later." },
+          { status: 429 }
+        );
+      }
+    }
+  } catch {
+    // Fail open if Redis is unavailable.
+  }
+
   let body: unknown;
 
   try {
@@ -94,9 +161,13 @@ export async function POST(request: Request) {
   const dayKey = getDayKey();
   const phoneKey = `${dayKey}:${parsed.data.phoneNumber}`;
 
-  if (!incrementWithLimit(phoneCounters, phoneKey, PHONE_DAILY_LIMIT, expiresAt)) {
+  if (
+    !incrementWithLimit(phoneCounters, phoneKey, PHONE_DAILY_LIMIT, expiresAt)
+  ) {
     return Response.json(
-      { error: "This number has already requested the maximum calls for today." },
+      {
+        error: "This number has already requested the maximum calls for today.",
+      },
       { status: 429 }
     );
   }
@@ -123,7 +194,9 @@ export async function POST(request: Request) {
       const message =
         typeof errorPayload?.detail === "string"
           ? errorPayload.detail
-          : errorPayload?.detail?.message ?? errorPayload?.message ?? "Unable to initiate the demo call.";
+          : errorPayload?.detail?.message ??
+            errorPayload?.message ??
+            "Unable to initiate the demo call.";
 
       throw new Error(message);
     }

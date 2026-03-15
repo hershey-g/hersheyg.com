@@ -136,6 +136,9 @@ export default function DemoCallCTA() {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const inputId = useId();
+  const helpTextId = useId();
+  const errorId = useId();
+  const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const normalized = normalizePhoneNumber(countryCode, phoneInput);
 
@@ -178,12 +181,22 @@ export default function DemoCallCTA() {
         setIsOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitState === "loading") return;
     if (!normalized) {
       setSubmitState("error");
       setErrorMessage("Enter a valid phone number.");
@@ -223,7 +236,7 @@ export default function DemoCallCTA() {
     return (
       <div
         className={[
-          "fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8",
+          "fixed bottom-[max(6rem,calc(env(safe-area-inset-bottom)+1rem))] right-4 z-50 sm:bottom-8 sm:right-8",
           "transition-all duration-700",
           isFadingOut
             ? "translate-y-3 scale-95 opacity-0"
@@ -231,13 +244,16 @@ export default function DemoCallCTA() {
         ].join(" ")}
       >
         <div className="dcta-success-enter relative flex flex-col items-center gap-3 rounded-2xl border border-accent-lit/20 bg-bg-2/95 px-8 py-6 shadow-[0_8px_40px_rgba(91,155,213,0.2)] backdrop-blur-xl">
-          <div className="relative flex h-14 w-14 items-center justify-center">
+          <div
+            className="relative flex h-14 w-14 items-center justify-center"
+            aria-hidden="true"
+          >
             <PulseRings />
             <span className="dcta-phone-vibrate relative z-10">
               <RingingPhoneIcon />
             </span>
           </div>
-          <p className="font-mono text-sm font-medium text-text">
+          <p className="font-mono text-sm font-medium text-text" role="status" aria-live="polite">
             Your phone is about to ring…
           </p>
           <p className="font-mono text-[11px] text-dim">
@@ -251,7 +267,7 @@ export default function DemoCallCTA() {
   /* ── Collapsed State (FAB) ────────────────────── */
   if (!isOpen) {
     return (
-      <div className="fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8">
+      <div className="fixed bottom-[max(6rem,calc(env(safe-area-inset-bottom)+1rem))] right-4 z-50 sm:bottom-8 sm:right-8">
         {/* CTA Label (dismissible) */}
         {!tooltipDismissed && (
           <div className="absolute bottom-full right-0 mb-3 flex items-center gap-1.5 rounded-lg border border-line bg-bg-2/95 py-1.5 pl-3 pr-1.5 shadow-lg backdrop-blur-md">
@@ -297,8 +313,12 @@ export default function DemoCallCTA() {
           }}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
+          onFocus={() => setShowTooltip(true)}
+          onBlur={() => setShowTooltip(false)}
           className="dcta-fab group relative flex h-14 w-14 items-center justify-center rounded-full border border-accent-lit/25 bg-bg-2/90 text-accent-lit shadow-[0_4px_24px_rgba(91,155,213,0.15)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-accent-lit/40 hover:shadow-[0_4px_32px_rgba(91,155,213,0.25)]"
           aria-label="Get an AI demo call"
+          aria-expanded="false"
+          aria-controls={panelId}
         >
           {/* Shimmer ring */}
           <span className="dcta-shimmer-ring absolute inset-0 rounded-full" />
@@ -314,8 +334,18 @@ export default function DemoCallCTA() {
 
   /* ── Expanded State ───────────────────────────── */
   return (
-    <div className="fixed bottom-24 right-4 z-50 sm:bottom-8 sm:right-8" ref={panelRef}>
-      <div className="dcta-panel-enter w-[min(calc(100vw-2rem),20rem)] overflow-hidden rounded-2xl border border-line bg-bg-2/95 shadow-[0_12px_48px_rgba(0,0,0,0.4),0_0_0_1px_rgba(91,155,213,0.08)] backdrop-blur-xl">
+    <div
+      className="fixed bottom-[max(6rem,calc(env(safe-area-inset-bottom)+1rem))] right-4 z-50 sm:bottom-8 sm:right-8"
+      ref={panelRef}
+    >
+      <div
+        id={panelId}
+        className="dcta-panel-enter w-[min(calc(100vw-2rem),20rem)] overflow-hidden rounded-2xl border border-line bg-bg-2/95 shadow-[0_12px_48px_rgba(0,0,0,0.4),0_0_0_1px_rgba(91,155,213,0.08)] backdrop-blur-xl"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby={`${panelId}-title`}
+        aria-describedby={helpTextId}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line/60 px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -323,7 +353,10 @@ export default function DemoCallCTA() {
               <PhoneIcon className="h-3.5 w-3.5" />
             </span>
             <div>
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-accent-lit">
+              <p
+                id={`${panelId}-title`}
+                className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-accent-lit"
+              >
                 AI Demo Call
               </p>
               <p className="font-mono text-[10px] text-dim">
@@ -343,6 +376,9 @@ export default function DemoCallCTA() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3 px-4 pb-4 pt-3.5">
+          <label htmlFor={inputId} className="sr-only">
+            Phone number
+          </label>
           <div className="flex gap-2">
             <div className="relative">
               <select
@@ -372,6 +408,12 @@ export default function DemoCallCTA() {
               disabled={isBusy}
               placeholder="(555) 123-4567"
               className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 font-mono text-sm text-text outline-none transition-colors placeholder:text-dim/50 focus:border-accent-lit/50 disabled:opacity-60"
+              aria-invalid={submitState === "error"}
+              aria-describedby={
+                submitState === "error"
+                  ? `${errorId} ${helpTextId}`
+                  : helpTextId
+              }
             />
           </div>
 
@@ -394,10 +436,19 @@ export default function DemoCallCTA() {
           </button>
 
           {submitState === "error" && (
-            <p className="font-mono text-[11px] text-term-red">{errorMessage}</p>
+            <p
+              id={errorId}
+              className="font-mono text-[11px] text-term-red"
+              role="alert"
+            >
+              {errorMessage}
+            </p>
           )}
 
-          <p className="text-center font-mono text-[10px] text-dim/60">
+          <p
+            id={helpTextId}
+            className="text-center font-mono text-[10px] text-dim/60"
+          >
             We&apos;ll call once, never store your number
           </p>
         </form>

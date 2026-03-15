@@ -311,26 +311,26 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-screen flex flex-col bg-bg scroll-mt-[200px] sm:scroll-mt-[240px]"
+      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
-      {/* Section header */}
-      <div className="text-center pt-12 sm:pt-20 pb-6 sm:pb-10 px-6 sm:px-12">
-        <p className="font-mono text-xs tracking-widest uppercase text-accent-lit mb-5">
+      {/* Section header — compact so header + chat fit in one viewport */}
+      <div className="text-center pt-8 sm:pt-12 pb-4 sm:pb-6 px-6 sm:px-12">
+        <p className="font-mono text-xs tracking-widest uppercase text-accent-lit mb-3">
           {COPY.contact.tag}
         </p>
-        <h2 className="text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.1] tracking-tight mb-2 sm:mb-4">
+        <h2 className="text-[clamp(24px,4vw,40px)] font-extrabold leading-[1.1] tracking-tight mb-1.5 sm:mb-2">
           {COPY.contact.heading}
         </h2>
-        <p className="text-base text-dim leading-relaxed max-w-[540px] mx-auto mb-1.5 sm:mb-3">
+        <p className="text-sm text-dim leading-relaxed max-w-[540px] mx-auto mb-1">
           {COPY.contact.sub}
         </p>
-        <p className="text-sm text-dim leading-relaxed max-w-[540px] mx-auto">
+        <p className="text-xs text-dim leading-relaxed max-w-[540px] mx-auto">
           {COPY.contact.pricing}
         </p>
       </div>
 
       {/* Chat container */}
-      <div className="flex-1 flex flex-col items-center px-6 pb-8 sm:pb-16">
+      <div className="flex-1 flex flex-col items-center px-6 pb-6 sm:pb-10">
         <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-[420px] max-h-[600px]">
           {/* Messages area */}
           <div

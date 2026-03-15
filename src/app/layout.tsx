@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
-import Script from "next/script";
+import ElevenLabsWidget from "@/components/ElevenLabsWidget";
 import "./globals.css";
 
 const inter = localFont({
@@ -84,16 +84,7 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
-        {/* ElevenLabs Conversational AI Widget */}
-        <Script
-          src="https://unpkg.com/@elevenlabs/convai-widget-embed@0.10.3/dist/index.js"
-          strategy="afterInteractive"
-        />
-        <div
-          dangerouslySetInnerHTML={{
-            __html: `<elevenlabs-convai agent-id="${process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID}"></elevenlabs-convai>`,
-          }}
-        />
+        <ElevenLabsWidget />
       </body>
     </html>
   );

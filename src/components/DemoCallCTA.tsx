@@ -259,7 +259,7 @@ export default function DemoCallCTA() {
               : "translate-y-1 opacity-0",
           ].join(" ")}
         >
-          Hear AI in action
+          Get a live AI call
           <span className="absolute -bottom-1 right-5 h-2 w-2 rotate-45 border-b border-r border-line bg-bg-2/95" />
         </div>
 

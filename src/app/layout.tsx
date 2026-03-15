@@ -87,7 +87,7 @@ export default function RootLayout({
         {/* ElevenLabs Conversational AI Widget */}
         <Script
           src="https://unpkg.com/@elevenlabs/convai-widget-embed@0.10.3/dist/index.js"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
         />
         <div
           dangerouslySetInnerHTML={{

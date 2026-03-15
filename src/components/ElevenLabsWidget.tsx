@@ -4,6 +4,7 @@ import { createElement, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
 const WIDGET_STARTUP_GUARD_MS = 2500;
+const TOOLTIP_DISMISSED_STORAGE_KEY = "elevenlabs-widget-tooltip-dismissed";
 
 function restoreTopScroll() {
   if (window.location.hash || window.scrollY === 0) return;
@@ -12,10 +13,19 @@ function restoreTopScroll() {
 
 export default function ElevenLabsWidget() {
   const [isMounted, setIsMounted] = useState(false);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const startupGuardActiveRef = useRef(false);
   const widgetContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    try {
+      setIsTooltipVisible(
+        window.localStorage.getItem(TOOLTIP_DISMISSED_STORAGE_KEY) !== "true"
+      );
+    } catch {
+      setIsTooltipVisible(true);
+    }
+
     startupGuardActiveRef.current = true;
 
     const mountRaf = window.requestAnimationFrame(() => {
@@ -53,6 +63,14 @@ export default function ElevenLabsWidget() {
     };
   }, []);
 
+  const handleTooltipDismiss = () => {
+    setIsTooltipVisible(false);
+
+    try {
+      window.localStorage.setItem(TOOLTIP_DISMISSED_STORAGE_KEY, "true");
+    } catch {}
+  };
+
   return (
     <>
       <Script
@@ -60,20 +78,29 @@ export default function ElevenLabsWidget() {
         strategy="afterInteractive"
       />
 
-      <div
-        className="pointer-events-none fixed bottom-28 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:w-[19rem]"
-        aria-hidden="true"
-      >
-        <div className="rounded-2xl border border-line/70 bg-bg-2/92 px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.42)] backdrop-blur-sm">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent-lit">
-            Live Voice Demo
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-text">
-            Want to hear how an AI agent sounds? Try a live call with AI
-            Hershey.
-          </p>
+      {isTooltipVisible ? (
+        <div className="pointer-events-none fixed bottom-28 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:w-[19rem]">
+          <div className="pointer-events-auto rounded-2xl border border-line/70 bg-bg-2/92 px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.42)] backdrop-blur-sm">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent-lit">
+                Live Voice Demo
+              </p>
+              <button
+                type="button"
+                onClick={handleTooltipDismiss}
+                aria-label="Dismiss live voice demo tooltip"
+                className="text-sm leading-none text-text/70 transition-colors hover:text-text"
+              >
+                x
+              </button>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-text">
+              Want to hear how an AI agent sounds? Try a live call with AI
+              Hershey.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div ref={widgetContainerRef} className="fixed bottom-0 right-0 z-50">
         {isMounted

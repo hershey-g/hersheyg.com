@@ -22,14 +22,7 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-md: 1.125rem;
-  --text-lg: 1.25rem;
-
   --radius-sm: 4px;
-  --radius-md: 8px;
 }
 
 /* -- Base Styles -- */
@@ -49,16 +42,6 @@ body {
 ::selection {
   background: var(--color-accent);
   color: var(--color-white);
-}
-
-/* -- Testimonial crossfade -- */
-@keyframes testimonial-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes testimonial-fade-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-8px); }
 }
 
 /* -- Scroll indicator bounce -- */
@@ -105,15 +88,9 @@ body {
   animation: intake-fade-up 0.3s ease both;
 }
 
-/* Intake agent thinking shimmer */
-@keyframes intake-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-
-/* Intake agent + symbol glow pulse */
-@keyframes intake-plus-pulse {
-  0%, 100% { opacity: 0.7; }
+/* Intake agent thinking pulse */
+@keyframes intake-thinking-pulse {
+  0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
 

@@ -47,5 +47,3 @@ The contact section's AI chat agent uses a structured knowledge injection system
 - `src/lib/intake-system-prompt.ts` - `buildSystemPrompt()` composes the prompt dynamically based on visitor type + matched knowledge
 
 **Knowledge entries** currently contain sample/placeholder content. Real content needs to be extracted from Hershey and structured into the TypeScript files. Each entry has: `id`, `category`, `keywords`, `techLevel` ("any" | "technical" | "non-technical"), and `content`.
-
-**Branch:** `feat/intake-agent-rag-personality` — deployed, not yet merged to main.

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
+import ElevenLabsWidget from "@/components/ElevenLabsWidget";
 import "./globals.css";
 
 const inter = localFont({
@@ -15,9 +16,7 @@ const jetbrainsMono = localFont({
   display: "optional",
 });
 
-export const viewport: Viewport = {
-  interactiveWidget: "resizes-visual",
-};
+export const viewport: Viewport = {};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hersheyg.com"),
@@ -85,6 +84,7 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
+        <ElevenLabsWidget />
       </body>
     </html>
   );

@@ -56,7 +56,7 @@ test("Suggestion chips render 4 in a 2x2 grid", async ({ page }, testInfo) => {
   await scrollToContact(page);
 
   // Chips container should use grid layout with exactly 4 buttons
-  const chipsGrid = page.locator(".grid.grid-cols-2");
+  const chipsGrid = page.locator(".grid.grid-cols-1");
   await expect(chipsGrid).toBeVisible({ timeout: 5000 });
   const chipButtons = chipsGrid.locator("button");
   await expect(chipButtons).toHaveCount(4);

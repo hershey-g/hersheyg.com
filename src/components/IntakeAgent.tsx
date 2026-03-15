@@ -57,7 +57,7 @@ function AgentMessage({
   const hasText = message?.parts.some((p) => p.type === "text" && p.text);
 
   return (
-    <div className="mb-3 intake-animate-in" style={{ overflowWrap: "break-word" }}>
+    <div className="mb-4 intake-animate-in" style={{ overflowWrap: "break-word" }}>
       {isStreaming && !hasText ? (
         <ThinkingIndicator />
       ) : (
@@ -83,8 +83,8 @@ function AgentMessage({
 
 function UserMessage({ message }: { message: UIMessage }) {
   return (
-    <div className="flex justify-end mb-3 intake-animate-in">
-      <div className="bg-accent-lit/8 rounded-lg px-3 py-2 max-w-[85%]">
+    <div className="flex justify-end mb-4 intake-animate-in">
+      <div className="bg-accent-lit/8 rounded-xl px-3.5 py-2.5 max-w-[85%]">
         <p className="text-[13px] leading-relaxed text-white font-mono">
           {message.parts.map((part, i) => {
             if (part.type === "text") return <span key={i}>{part.text}</span>;
@@ -134,15 +134,15 @@ function SuggestionChips({
               : { opacity: 0, height: 0, marginTop: 0 }
           }
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
-          className="overflow-hidden mt-3"
+          className="overflow-hidden mt-4"
         >
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {chips.map((chip) => (
               <button
                 key={chip}
                 type="button"
                 onClick={() => onSelect(chip)}
-                className="border border-line rounded-md px-2.5 py-2.5 sm:px-3 sm:py-3 text-left font-mono text-xs sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
+                className="border border-line rounded-lg px-3 py-3 sm:px-3.5 sm:py-3.5 text-left font-mono text-xs sm:text-[13px] text-text bg-transparent hover:border-accent-lit/30 transition-colors"
               >
                 {chip}
               </button>
@@ -167,6 +167,26 @@ function ChatInput({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    // Don't auto-focus on touch devices — opening the keyboard on scroll is disruptive
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.focus({ preventScroll: true });
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && input.trim() && !isStreaming) {
       e.preventDefault();
@@ -175,7 +195,7 @@ function ChatInput({
   };
 
   return (
-    <div className="flex gap-2 px-3 sm:px-4 py-2.5 border-t border-line/50 flex-shrink-0">
+    <div className="flex gap-2.5 px-4 sm:px-5 py-3 border-t border-line/50 flex-shrink-0">
       <input
         ref={inputRef}
         type="text"
@@ -183,13 +203,13 @@ function ChatInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="font-mono text-[13px] flex-1 px-3 py-2 border border-line rounded-md bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
+        className="font-mono text-[13px] flex-1 px-3 py-2 border border-line rounded-lg bg-bg/60 text-text outline-none focus:border-accent-lit/50 transition-colors placeholder:text-dim"
       />
       <button
         onClick={onSubmit}
         disabled={!input.trim() || isStreaming}
-        className="font-mono text-xs px-3 py-2 border border-accent-lit/40 rounded-md
-                   bg-accent-lit/10 text-accent-lit hover:bg-accent-lit/20 transition-all
+        className="font-mono text-xs px-3.5 py-2 border border-accent-lit/50 rounded-lg
+                   bg-accent-lit/15 text-accent-lit hover:bg-accent-lit/25 transition-all
                    disabled:opacity-25 disabled:cursor-not-allowed"
         aria-label="Send message"
       >
@@ -259,6 +279,7 @@ export default function IntakeAgent() {
     scrollToBottom();
   }, [messages, status, scrollToBottom]);
 
+
   const isActive = status === "streaming" || status === "submitted";
 
   const handleSendMessage = useCallback(() => {
@@ -281,10 +302,10 @@ export default function IntakeAgent() {
   return (
     <section
       id="contact"
-      className="min-h-svh flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
+      className="min-h-screen flex flex-col bg-bg scroll-mt-14 sm:scroll-mt-20"
     >
       {/* Section header */}
-      <div className="text-center pt-12 sm:pt-20 pb-4 sm:pb-8 px-6 sm:px-12">
+      <div className="text-center pt-12 sm:pt-20 pb-6 sm:pb-10 px-6 sm:px-12">
         <p className="font-mono text-xs tracking-widest uppercase text-accent-lit mb-5">
           {COPY.contact.tag}
         </p>
@@ -300,12 +321,12 @@ export default function IntakeAgent() {
       </div>
 
       {/* Chat container */}
-      <div className="flex-1 flex flex-col items-center px-6 pb-6 sm:pb-12">
-        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-lg overflow-hidden flex flex-col flex-1 max-h-[clamp(280px,50svh,600px)]">
+      <div className="flex-1 flex flex-col items-center px-6 pb-8 sm:pb-16">
+        <div className="max-w-[680px] w-full bg-bg-2 border border-line/50 rounded-xl overflow-hidden flex flex-col flex-1 min-h-[420px] max-h-[600px]">
           {/* Messages area */}
           <div
             ref={chatRef}
-            className="px-3 py-3 sm:px-4 sm:py-4 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
+            className="px-4 py-4 sm:px-5 sm:py-5 font-mono text-sm leading-relaxed overflow-y-auto intake-scroll flex-1 min-h-0"
           >
             {messages.map((msg) => {
               const hasVisibleContent = msg.parts.some(

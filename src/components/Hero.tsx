@@ -32,7 +32,7 @@ export default function Hero() {
     <section
       id="hero"
       ref={sectionRef}
-      className="relative flex min-h-screen items-center justify-center px-6 py-28 overflow-hidden"
+      className="relative flex min-h-svh items-center justify-center px-6 py-28 overflow-hidden"
     >
       {/* Ambient glow */}
       <motion.div
@@ -88,7 +88,7 @@ export default function Hero() {
         </motion.p>
 
         {/* CTA */}
-        <motion.div className="mt-10" {...fadeUp(0.55, noMotion)}>
+        <motion.div className="mt-10 flex flex-col items-center gap-4" {...fadeUp(0.55, noMotion)}>
           <MagneticButton>
             <button
               onClick={() =>
